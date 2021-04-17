@@ -21,6 +21,8 @@ int main() {
 	sem_t *sem1 = sem_open("/sem1", O_CREAT, 0640, 0);
 	sem_t *sem2 = sem_open("/sem2", O_CREAT, 0640, 0);
 
+	sem_t *shmSem = sem_open("/shmSem", O_CREAT, 0640, 1); // Special semaphore for accessing the shared memory, only one process can have it at a time
+
 	sem_t* semArray[3] = {sem0, sem1, sem2};
 
 	int shmid = shmget(IPC_PRIVATE, SHMSIZE, IPC_CREAT | 0640); // Correct permissions (0640 in this case) are super important, shmget() fails otherwise
@@ -93,6 +95,20 @@ int main() {
 
 	for(int i = 0; i < 3; i++) {
 		sleep(1);
+		sem_wait(shmSem);
+		if(i == 0) {
+			mem[1] = 1;
+			mem[2] = 1;
+		}
+		else if(i == 1) {
+			mem[0] = 1;
+			mem[2] = 1;
+		}
+		else if(i == 2) {
+			mem[0] = 1;
+			mem[1] = 1;
+		}
+		sem_post(shmSem);
 
 		cout << "Waking up SM #" << i << endl;
 		sem_post(semArray[i]);
@@ -101,6 +117,11 @@ int main() {
 	pid_t pid;
 	int status = 0;
 	while ((pid = wait(&status)) != -1) {}
+
+	cout << "final status: " << endl;
+	for(int i = 0; i < 3; i++) {
+		cout << "mem" << i << ":" << mem[i] << endl;
+	}
 
 	sem_close(sem0);
 	sem_unlink("/sem0");

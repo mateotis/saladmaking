@@ -21,7 +21,8 @@ int main (int argc, char* args[]) {
 
 	string semName = "sem" + makerNumStr;
 
-	sem_t *sem = sem_open(semName.c_str(), 0); /* Open a preexisting semaphore. */
+	sem_t *sem = sem_open(semName.c_str(), 0);
+	sem_t *shmSem = sem_open("/shmSem", 0);
 
 	int *mem;
 	void* tempMem = (int*)shmat(shmid, NULL, 0); // Pointer magic! Casting the shared memory pointer to void, to then cast it back to int resolves some nasty issues
@@ -36,6 +37,21 @@ int main (int argc, char* args[]) {
 	sem_wait(sem);
 
 	cout << "SM #" << makerNumStr << " is awake!" << endl;
+
+	sem_wait(shmSem);
+	if(makerNum == 0) {
+		mem[1] = 0;
+		mem[2] = 0;
+	}
+	else if(makerNum == 1) {
+		mem[0] = 0;
+		mem[2] = 0;
+	}
+	else if(makerNum == 2) {
+		mem[0] = 0;
+		mem[1] = 0;
+	}
+	sem_post(shmSem);
 	exit(0);
 	
 	mem[makerNum] = makerNum; /* Give it a different value */
