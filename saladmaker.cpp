@@ -4,13 +4,19 @@
 #include <cstdio> 
 #include <cstdlib>
 #include <iostream>
+#include <string>
+#include <unistd.h> // For read/write and IPC
 
 using namespace std;
 
-int main () {
-	int shmid, err;
+int main (int argc, char* args[]) {
 
-	shmid = 0;
+	string shmidStr = args[1];
+	int shmid = stoi(shmidStr);
+	string makerNumStr = args[2];
+	int makerNum = stoi(makerNumStr); 
+
+	cout << "Saladmaker shmid: " << shmid << endl;
 
 	int *mem;
 	void* tempMem = (int*)shmat(shmid, NULL, 0); // Pointer magic! Casting the shared memory pointer to void, to then cast it back to int resolves some nasty issues
@@ -21,17 +27,12 @@ int main () {
 	else {
 		mem = reinterpret_cast<int*>(tempMem); // Now we have a proper int shared memory pointer 
 	}
-
-	cout << "Current mem0: " << mem[0] << endl;
-	cout << "Current mem1: " << mem[1] << endl;
 	
-	mem[0] = 2; /* Give it a different value */
-	mem[1] = 1337;
+	mem[makerNum] = makerNum; /* Give it a different value */
 	
-	cout << "Changed mem0 is now " << mem[0] << endl;
-	cout << "Changed mem1 is now " << mem[1] << endl;
+	cout << "Changed mem" << makerNum << " is now " << mem[0] << endl;
 	
-	err = shmdt(mem); // Detach from the segment
+	int err = shmdt(mem); // Detach from the segment
 	if (err == -1) {
 		cerr << "Error detaching from shared memory!" << endl;
 	}
