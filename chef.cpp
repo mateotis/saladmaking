@@ -1,49 +1,61 @@
 #include <sys/types.h>
 #include <sys/ipc.h> 
 #include <sys/shm.h> 
-#include <stdio.h> 
-#include <stdlib.h>
+#include <cstdio> 
+#include <cstdlib>
+#include <iostream>
 
-#define SHMSIZE 1024 //size of shared memory
+#define SHMSIZE 1024 // Size of the shared memory segment; should be more than enough for our purposes
 
 using namespace std;
 
-int main(int argc , char** argv) {
-	int id = 0, err = 0;
+int main() {
+
+	int err = 0;
+
+	int shmid = shmget(IPC_PRIVATE, 1024, IPC_CREAT | 0640); // Correct permissions (0640 in this case) are super important, shmget() fails otherwise
+
+	if (shmid == -1) {
+		cerr << "Could not create shared memory!" << endl;
+		return -1;
+	}
+
 	int *mem;
-	key_t key = 4444;
-	
-	id = shmget (key, SHMSIZE, 0666); /* Make shared memory segment */
-	
-	if (id == -1) 
-		perror (" Creation ");
-	else 
-		printf (" Allocated . %d\n" , id);
+	void* tempMem = (int*)shmat(shmid, NULL, 0); // Pointer magic! Casting the shared memory pointer to void, to then cast it back to int resolves some nasty issues
+	if (tempMem == reinterpret_cast<void*>(-1)) { // reinterpret_cast() ensures that we retain the same address when converting from void and back, which is exactly what we're doing
+		cerr << "Could not attach to shared memory!" << endl;
+		return -1;
+	}
+	else {
+		mem = reinterpret_cast<int*>(tempMem); // Now we have a proper int shared memory pointer 
+	}
 
-
-	mem = shmat (id , NULL, 0); /* Attach the segment */
-
-	if ((int) mem == -1)  
-		perror (" Attachment .");
-	else 
-		printf (" Attached . Mem contents %d\n" ,*mem );
-
-	mem[0] = 14; /* Give it initial value */
+	mem[0] = 4;
 	mem[1] = 999;
-	mem[2] = -2;
-	
-	printf (" Start other process . >"); 
+	cout << "Original mem0: " << mem[0] << endl;
+	cout << "Original mem1: " << mem[1] << endl;
 
+	cout << "Open other process" << endl;
 	getchar();
-	
-	printf ("mem is now %d\n", * mem ); /* Print out new value */
 
-	err = shmctl (id , IPC_RMID , NULL); /* Remove segment */
-	
-	if (err == -1) 
-		perror ("Removal.");
-	else 
-		printf ("Removed. %d\n", (int)(err));
-	
+	cout << "New mem0: " << mem[0] << endl;
+	cout << "New mem1: " << mem[1] << endl;
+
+	err = shmdt(mem); // Detach from the segment
+	if (err == -1) {
+		cerr << "Error detaching from shared memory!" << endl;
+	}
+	else {
+		cout << "Detachment successful, ID " << err << endl;
+	}
+
+	err = shmctl(shmid, IPC_RMID, NULL); // Remove the segment
+	if (err == -1) {
+		cerr << "Error removing shared memory!" << endl;
+	}
+	else {
+		cout << "Shared memory segment removed, ID " << err << endl;
+	}
+
 	return 0;
 }
