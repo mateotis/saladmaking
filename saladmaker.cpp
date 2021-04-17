@@ -34,29 +34,38 @@ int main (int argc, char* args[]) {
 		mem = reinterpret_cast<int*>(tempMem); // Now we have a proper int shared memory pointer 
 	}
 
-	sem_wait(sem);
+	int saladCount = 0; // How many salads this maker has made
 
-	cout << "SM #" << makerNumStr << " is awake!" << endl;
+	while(mem[3] < 10) {
+		sem_wait(sem);
 
-	sem_wait(shmSem);
-	if(makerNum == 0) {
-		mem[1] = 0;
-		mem[2] = 0;
+		cout << "SM #" << makerNumStr << " is awake!" << endl;
+
+		sem_wait(shmSem);
+		if(makerNum == 0) {
+			mem[1] = 0;
+			mem[2] = 0;
+		}
+		else if(makerNum == 1) {
+			mem[0] = 0;
+			mem[2] = 0;
+		}
+		else if(makerNum == 2) {
+			mem[0] = 0;
+			mem[1] = 0;
+		}
+		sem_post(shmSem);
+		saladCount++;
+		cout << "SM #" << makerNumStr << " made this many salads: " << saladCount << endl;
+		cout << "Current value of mem[3]: " << mem[3] << endl;
 	}
-	else if(makerNum == 1) {
-		mem[0] = 0;
-		mem[2] = 0;
-	}
-	else if(makerNum == 2) {
-		mem[0] = 0;
-		mem[1] = 0;
-	}
-	sem_post(shmSem);
-	exit(0);
+
+
+	//exit(0);
 	
-	mem[makerNum] = makerNum; /* Give it a different value */
+	//mem[makerNum] = makerNum; /* Give it a different value */
 	
-	cout << "Changed mem" << makerNum << " is now " << mem[0] << endl;
+	//cout << "Changed mem" << makerNum << " is now " << mem[0] << endl;
 	
 	int err = shmdt(mem); // Detach from the segment
 	if (err == -1) {

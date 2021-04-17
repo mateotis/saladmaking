@@ -4,12 +4,13 @@
 #include <semaphore.h>
 #include <fcntl.h>
 #include <cstdio> 
-#include <cstdlib>
+#include <cstdlib> // For rand()
 #include <iostream>
 #include <string>
 #include <cstring>
 #include <unistd.h> // For read/write and IPC
 #include <sys/wait.h> // For wait() and signals
+#include <ctime> // For seeding rand() with time()
 
 #define SHMSIZE 1024 // Size of the shared memory segment; should be more than enough for our purposes
 
@@ -93,24 +94,35 @@ int main() {
 		}*/
 	}
 
-	for(int i = 0; i < 3; i++) {
+	mem[3] = 0; // The current number of salads
+	int saladTotal = 10;
+	for(int i = 0; i < saladTotal; i++) {
 		sleep(1);
+
+		srand(time(0)); // Simulating the chef picking two ingredients at random (three possible combinations)
+		int choice = rand() % 3;
+
 		sem_wait(shmSem);
-		if(i == 0) {
+		if(choice == 0) {
 			mem[1] = 1;
 			mem[2] = 1;
 		}
-		else if(i == 1) {
+		else if(choice == 1) {
 			mem[0] = 1;
 			mem[2] = 1;
 		}
-		else if(i == 2) {
+		else if(choice == 2) {
 			mem[0] = 1;
 			mem[1] = 1;
 		}
 		sem_post(shmSem);
+		cout << "Waking up SM #" << choice << endl;
+		sem_post(semArray[choice]);
+		mem[3] += 1;
 
-		cout << "Waking up SM #" << i << endl;
+	}
+
+	for(int i = 0; i < 3; i++) { // Unlock all semaphores so all saladmakers have a chance to gracefully finish
 		sem_post(semArray[i]);
 	}
 
