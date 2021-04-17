@@ -1,6 +1,7 @@
 #include <sys/types.h>
 #include <sys/ipc.h> 
-#include <sys/shm.h> 
+#include <sys/shm.h>
+#include <semaphore.h>
 #include <cstdio> 
 #include <cstdlib>
 #include <iostream>
@@ -18,6 +19,10 @@ int main (int argc, char* args[]) {
 
 	cout << "Saladmaker shmid: " << shmid << endl;
 
+	string semName = "sem" + makerNumStr;
+
+	sem_t *sem = sem_open(semName.c_str(), 0); /* Open a preexisting semaphore. */
+
 	int *mem;
 	void* tempMem = (int*)shmat(shmid, NULL, 0); // Pointer magic! Casting the shared memory pointer to void, to then cast it back to int resolves some nasty issues
 	if (tempMem == reinterpret_cast<void*>(-1)) { // reinterpret_cast() ensures that we retain the same address when converting from void and back, which is exactly what we're doing
@@ -27,6 +32,11 @@ int main (int argc, char* args[]) {
 	else {
 		mem = reinterpret_cast<int*>(tempMem); // Now we have a proper int shared memory pointer 
 	}
+
+	sem_wait(sem);
+
+	cout << "SM #" << makerNumStr << " is awake!" << endl;
+	exit(0);
 	
 	mem[makerNum] = makerNum; /* Give it a different value */
 	

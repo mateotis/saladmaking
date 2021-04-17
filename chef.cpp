@@ -1,6 +1,8 @@
 #include <sys/types.h>
 #include <sys/ipc.h> 
-#include <sys/shm.h> 
+#include <sys/shm.h>
+#include <semaphore.h>
+#include <fcntl.h>
 #include <cstdio> 
 #include <cstdlib>
 #include <iostream>
@@ -14,6 +16,12 @@
 using namespace std;
 
 int main() {
+
+	sem_t *sem0 = sem_open("/sem0", O_CREAT, 0640, 0);
+	sem_t *sem1 = sem_open("/sem1", O_CREAT, 0640, 0);
+	sem_t *sem2 = sem_open("/sem2", O_CREAT, 0640, 0);
+
+	sem_t* semArray[3] = {sem0, sem1, sem2};
 
 	int shmid = shmget(IPC_PRIVATE, SHMSIZE, IPC_CREAT | 0640); // Correct permissions (0640 in this case) are super important, shmget() fails otherwise
 
@@ -32,15 +40,16 @@ int main() {
 		mem = reinterpret_cast<int*>(tempMem); // Now we have a proper int shared memory pointer 
 	}
 
-	mem[0] = 12;
+/*	mem[0] = 12;
 	mem[1] = 999;
 	mem[2] = -43;
 	cout << "Original mem0: " << mem[0] << endl;
 	cout << "Original mem1: " << mem[1] << endl;
-	cout << "Original mem2: " << mem[2] << endl;
+	cout << "Original mem2: " << mem[2] << endl;*/
 
 	// Forking saladmaker child
 
+	int count = 0;
 	for(int childNum = 0; childNum < 3; childNum++) {
 		sleep(1); // Stagger the kids until I figure out how to make them play nice
 		pid_t pid;
@@ -67,18 +76,38 @@ int main() {
 			char* arg[] = {saladmakerChar, segmentIDChar, childNumChar, NULL};
 			execv("./saladmaker", arg);	// Start the saladmaker!
 		}
+/*		else {
+
+			pid_t pid;
+			int status = 0;
+			while ((pid = wait(&status)) != -1) {
+				cout << "==SALADMAKER #" << count << "==" << endl;
+				cout << "New mem0: " << mem[0] << endl;
+				cout << "New mem1: " << mem[1] << endl;
+				cout << "New mem2: " << mem[2] << endl;
+				count++;
+				cout << "Count: " << count << endl;
+			} // Wait for all saladmakers for finish			
+		}*/
+	}
+
+	for(int i = 0; i < 3; i++) {
+		sleep(1);
+
+		cout << "Waking up SM #" << i << endl;
+		sem_post(semArray[i]);
 	}
 
 	pid_t pid;
 	int status = 0;
-	int count = 0;
-	while ((pid = wait(&status)) != -1) {
-		cout << "==SALADMAKER #" << count << "==" << endl;
-		cout << "New mem0: " << mem[0] << endl;
-		cout << "New mem1: " << mem[1] << endl;
-		cout << "New mem2: " << mem[2] << endl;
-		count++;
-	} // Wait for all saladmakers for finish
+	while ((pid = wait(&status)) != -1) {}
+
+	sem_close(sem0);
+	sem_unlink("/sem0");
+	sem_close(sem1);
+	sem_unlink("/sem1");
+	sem_close(sem2);
+	sem_unlink("/sem2");
 
 	int err = shmdt(mem); // Detach from the segment
 	if (err == -1) {
