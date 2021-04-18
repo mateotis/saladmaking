@@ -104,35 +104,30 @@ int main(int argc, char* args[]) {
 			char* segmentIDChar = new char[30];
 			char* childNumChar = new char[30];
 			char* saladTotalChar = new char[30];
+			char* smTimeChar = new char[30];
 
 			strcpy(segmentIDChar, segmentIDStr.c_str());
 			strcpy(saladmakerChar, saladmakerName.c_str());
 			strcpy(childNumChar, childNumStr.c_str());
 			strcpy(saladTotalChar, saladTotalStr.c_str());
+			strcpy(smTimeChar, smTimeStr.c_str());
 
-			char* arg[] = {saladmakerChar, segmentIDChar, childNumChar, saladTotalChar, NULL};
+			char* arg[] = {saladmakerChar, segmentIDChar, childNumChar, saladTotalChar, smTimeChar, NULL};
 			execv("./saladmaker", arg);	// Start the saladmaker!
 		}
-/*		else {
-
-			pid_t pid;
-			int status = 0;
-			while ((pid = wait(&status)) != -1) {
-				cout << "==SALADMAKER #" << count << "==" << endl;
-				cout << "New mem0: " << mem[0] << endl;
-				cout << "New mem1: " << mem[1] << endl;
-				cout << "New mem2: " << mem[2] << endl;
-				count++;
-				cout << "Count: " << count << endl;
-			} // Wait for all saladmakers for finish			
-		}*/
 	}
 
 	for(int i = 0; i < saladTotal; i++) {
-		sleep(1);
+		// Before each serving of ingredients, the chef rests for a randomly determined time based on user input
+		srand(time(0));
+		double chefTimeMin = 0.5*double(chefTime); // As specified in the requirements
+		double f = (double)rand() / RAND_MAX;
+		double actualChefTime = chefTimeMin + f * (double(chefTime) - chefTimeMin);
 
-		srand(time(0)); // Simulating the chef picking two ingredients at random (three possible combinations)
-		int choice = rand() % 3;
+		cout << "Chef resting for " << actualChefTime << endl;
+		sleep(actualChefTime);
+
+		int choice = rand() % 3; // Simulating the chef picking two ingredients at random (three possible combinations)
 
 		sem_wait(shmSem);
 		if(choice == 0) { // Picking tomatoes and peppers for SM #0

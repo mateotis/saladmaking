@@ -19,6 +19,8 @@ int main (int argc, char* args[]) {
 	int smNum = stoi(smNumStr); 
 	string saladTotalStr = args[3];
 	int saladTotal = stoi(saladTotalStr);
+	string smTimeStr = args[4];
+	int smTime = stoi(smTimeStr);
 
 	cout << "Saladmaker shmid: " << shmid << endl;
 
@@ -57,16 +59,27 @@ int main (int argc, char* args[]) {
 			mem[0] = 0;
 			mem[1] = 0;
 		}
+		
+		sem_post(shmSem);
 
+		srand(time(0));
+		double smTimeMin = 0.8*double(smTime); // As specified in the requirements
+		double f = (double)rand() / RAND_MAX;
+		double actualSMTime = smTimeMin + f * (double(smTime) - smTimeMin);
+
+		cout << "SM #" << smNumStr << " working for: " << actualSMTime << endl;
+		sleep(actualSMTime); // I know this looks like the saladmakers are sleeping on the job, but trust me, they're actually hard at work!
+
+		sem_wait(shmSem);
 		if(mem[3] < saladTotal) { // An extra check to make sure the count doesn't get incremented extra at the end of execution
 			mem[3] += 1; // Increment the total salad counter
 			mem[smNum + 4] += 1; // Increment the specific SM's salad counter
 
 			cout << "SM #" << smNumStr << " made this many salads: " << mem[smNum + 4] << endl;
 			cout << "Current value of mem[3]: " << mem[3] << endl;
-		}		
-		
+		}
 		sem_post(shmSem);
+
 	}
 
 
