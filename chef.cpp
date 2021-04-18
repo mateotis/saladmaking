@@ -72,7 +72,7 @@ int main(int argc, char* args[]) {
 	}
 
 
-	// Initialising all variables in shared memory
+	// Initialising all variables in shared memory - could easily make this into a for loop, but it's useful to have a quick reference of what each variable is used for
 	mem[0] = 0; // Number of onions available
 	mem[1] = 0; // Number of peppers available
 	mem[2] = 0; // Number of tomatoes available
@@ -80,6 +80,18 @@ int main(int argc, char* args[]) {
 	mem[4] = 0; // Salads produced by SM #0
 	mem[5] = 0; // Salads produced by SM #1
 	mem[6] = 0; // Salads produced by SM #2
+	mem[7] = 0; // SM #0 idle (0) or busy (1)
+	mem[8] = 0; // SM #1 idle (0) or busy (1)
+	mem[9] = 0; // SM #2 idle (0) or busy (1)
+	mem[10] = 0; // Onion weight for SM #0
+	mem[11] = 0; // Pepper weight for SM #0
+	mem[12] = 0; // Tomato weight for SM #0
+	mem[13] = 0; // Onion weight for SM #1
+	mem[14] = 0; // Pepper weight for SM #1
+	mem[15] = 0; // Tomato weight for SM #1
+	mem[16] = 0; // Onion weight for SM #2
+	mem[17] = 0; // Pepper weight for SM #2
+	mem[18] = 0; // Tomato weight for SM #2
 
 
 	// Forking saladmaker child
@@ -143,10 +155,11 @@ int main(int argc, char* args[]) {
 			mem[1] = 1;
 		}
 		sem_post(shmSem);
+		while(mem[choice + 7] == 1) { // If the selected SM is busy, wait until it becomes available
+			sleep(0.1);
+		}
 		cout << "Waking up SM #" << choice << endl;
 		sem_post(semArray[choice]);
-		//mem[3] += 1;
-
 	}
 
 	sleep(2);

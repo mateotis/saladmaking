@@ -41,12 +41,29 @@ int main (int argc, char* args[]) {
 
 	//int saladCount = 0; // How many salads this maker has made
 
+	int currentOnionWeight = 0;
+	int currentPepperWeight = 0;
+	int currentTomatoWeight = 0;
+
 	while(mem[3] < saladTotal) {
 		sem_wait(sem);
 
 		cout << "SM #" << smNumStr << " is awake!" << endl;
 
+		// Weigh each SM's always-available ingredient first
+		srand(time(0));
+		if(smNum == 0) {
+			currentOnionWeight = rand() % 12 + 24; // Simple formula I came up with on the fly to get an int in the specified range: rand() % (1.2*w - 0.8*w) + 0.8*w (writing them in actual numbers as C++ can't compile with doubles in the equation, even if they come out to an int)
+		}
+		else if(smNum == 1) {
+			currentPepperWeight = rand() % 20 + 40;
+		}
+		else if(smNum == 2) {
+			currentTomatoWeight = rand() % 32 + 64;
+		}
+
 		sem_wait(shmSem);
+		mem[smNum + 7] = 1; // Notify chef that SM is busy
 		if(smNum == 0) {
 			mem[1] = 0;
 			mem[2] = 0;
@@ -62,12 +79,28 @@ int main (int argc, char* args[]) {
 		
 		sem_post(shmSem);
 
+		// Measure the other two ingredients that we got from the chef
+		if(smNum == 0) {
+			currentPepperWeight = rand() % 20 + 40;
+			currentTomatoWeight = rand() % 32 + 64;
+		}
+		else if(smNum == 1) {
+			currentOnionWeight = rand() % 12 + 24;
+			currentTomatoWeight = rand() % 32 + 64;
+		}
+		else if(smNum == 2) {
+			currentOnionWeight = rand() % 12 + 24;
+			currentPepperWeight = rand() % 20 + 40;
+		}
+
+		cout << "SM #" << smNum << " has this much of each ingredient: " << currentPepperWeight << " pepper, " << currentOnionWeight << " onion, " << currentTomatoWeight << " tomato" << endl;
+
 		srand(time(0));
 		double smTimeMin = 0.8*double(smTime); // As specified in the requirements
 		double f = (double)rand() / RAND_MAX;
 		double actualSMTime = smTimeMin + f * (double(smTime) - smTimeMin);
 
-		cout << "SM #" << smNumStr << " working for: " << actualSMTime << endl;
+		cout << "SM #" << smNum << " working for: " << actualSMTime << endl;
 		sleep(actualSMTime); // I know this looks like the saladmakers are sleeping on the job, but trust me, they're actually hard at work!
 
 		sem_wait(shmSem);
@@ -75,8 +108,10 @@ int main (int argc, char* args[]) {
 			mem[3] += 1; // Increment the total salad counter
 			mem[smNum + 4] += 1; // Increment the specific SM's salad counter
 
-			cout << "SM #" << smNumStr << " made this many salads: " << mem[smNum + 4] << endl;
+			cout << "SM #" << smNum << " made this many salads: " << mem[smNum + 4] << endl;
 			cout << "Current value of mem[3]: " << mem[3] << endl;
+
+			mem[smNum + 7] = 0; // SM is no longer busy
 		}
 		sem_post(shmSem);
 
