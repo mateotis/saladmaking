@@ -46,51 +46,83 @@ int main (int argc, char* args[]) {
 	int currentTomatoWeight = 0;
 
 	while(mem[3] < saladTotal) {
+		cout << "SM #" << smNum << " going to sleep..." << endl;
 		sem_wait(sem);
 
 		cout << "SM #" << smNumStr << " is awake!" << endl;
+
+		if(mem[3] == saladTotal) { // Need an extra finish check because otherwise some of the saladmakers might go through their loop one more time than needed
+			break; // If we're done, you can go home, no need to try to weigh/calculate anything else!
+		}
 
 		// Weigh each SM's always-available ingredient first
 		srand(time(0));
 		if(smNum == 0) {
 			currentOnionWeight = rand() % 12 + 24; // Simple formula I came up with on the fly to get an int in the specified range: rand() % (1.2*w - 0.8*w) + 0.8*w (writing them in actual numbers as C++ can't compile with doubles in the equation, even if they come out to an int)
+			if(currentOnionWeight < 30) { // If there is not enough, pick another one, which will be enough for sure
+				currentOnionWeight += rand() % 12 + 24;
+			}
 		}
 		else if(smNum == 1) {
 			currentPepperWeight = rand() % 20 + 40;
+			if(currentPepperWeight < 50) { // If there is not enough, pick another one, which will be enough for sure
+				currentPepperWeight += rand() % 20 + 40;
+			}			
 		}
 		else if(smNum == 2) {
 			currentTomatoWeight = rand() % 32 + 64;
+			if(currentTomatoWeight < 80) { // If there is not enough, pick another one, which will be enough for sure
+				currentTomatoWeight += rand() % 32 + 64;
+			}			
 		}
 
 		sem_wait(shmSem);
 		mem[smNum + 7] = 1; // Notify chef that SM is busy
 		if(smNum == 0) {
-			mem[1] = 0;
-			mem[2] = 0;
+			mem[1] -= 1; // Consume resource - in this case, take an ingredient that the chef put down
+			mem[2] -= 1;
 		}
 		else if(smNum == 1) {
-			mem[0] = 0;
-			mem[2] = 0;
+			mem[0] -= 1;
+			mem[2] -= 1;
 		}
 		else if(smNum == 2) {
-			mem[0] = 0;
-			mem[1] = 0;
+			mem[0] -= 1;
+			mem[1] -= 1;
 		}
 		
 		sem_post(shmSem);
 
 		// Measure the other two ingredients that we got from the chef
 		if(smNum == 0) {
-			currentPepperWeight = rand() % 20 + 40;
-			currentTomatoWeight = rand() % 32 + 64;
+			currentPepperWeight += rand() % 20 + 40; // Important to use += instead of = to ensure that even if we have to pick an ingredient twice, we save the previous weight
+			currentTomatoWeight += rand() % 32 + 64;
+			if(currentPepperWeight < 50 || currentTomatoWeight < 80) {
+				sem_wait(shmSem);
+				mem[smNum + 7] = 0;
+				sem_post(shmSem);
+				continue;
+			}
 		}
 		else if(smNum == 1) {
-			currentOnionWeight = rand() % 12 + 24;
-			currentTomatoWeight = rand() % 32 + 64;
+			currentOnionWeight += rand() % 12 + 24;
+			currentTomatoWeight += rand() % 32 + 64;
+			if(currentOnionWeight < 30 || currentTomatoWeight < 80) {
+				sem_wait(shmSem);
+				mem[smNum + 7] = 0;
+				sem_post(shmSem);
+				continue;
+			}
 		}
 		else if(smNum == 2) {
-			currentOnionWeight = rand() % 12 + 24;
-			currentPepperWeight = rand() % 20 + 40;
+			currentOnionWeight += rand() % 12 + 24;
+			currentPepperWeight += rand() % 20 + 40;
+			if(currentPepperWeight < 50 || currentOnionWeight < 30) {
+				sem_wait(shmSem);
+				mem[smNum + 7] = 0;
+				sem_post(shmSem);
+				continue;
+			}
 		}
 
 		cout << "SM #" << smNum << " has this much of each ingredient: " << currentPepperWeight << " pepper, " << currentOnionWeight << " onion, " << currentTomatoWeight << " tomato" << endl;
@@ -111,25 +143,22 @@ int main (int argc, char* args[]) {
 			cout << "SM #" << smNum << " made this many salads: " << mem[smNum + 4] << endl;
 			cout << "Current value of mem[3]: " << mem[3] << endl;
 
-			mem[smNum + 7] = 0; // SM is no longer busy
+			currentOnionWeight = 0; // As the salad is done, reset the weights
+			currentPepperWeight = 0;
+			currentTomatoWeight = 0;
+
+			mem[smNum + 7] = 0; // SM is no longer busy		
 		}
 		sem_post(shmSem);
 
 	}
-
-
-	//exit(0);
-	
-	//mem[smNum] = smNum; /* Give it a different value */
-	
-	//cout << "Changed mem" << smNum << " is now " << mem[0] << endl;
 	
 	int err = shmdt(mem); // Detach from the segment
 	if (err == -1) {
 		cerr << "Error detaching from shared memory!" << endl;
 	}
 	else {
-		cout << "Detachment successful, ID " << err << endl;
+		cout << "SM #" << smNum << " detachment successful, ID " << err << endl;
 	}
 	
 	return 0;

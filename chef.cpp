@@ -129,7 +129,7 @@ int main(int argc, char* args[]) {
 		}
 	}
 
-	for(int i = 0; i < saladTotal; i++) {
+	while(mem[3] < saladTotal) {
 		// Before each serving of ingredients, the chef rests for a randomly determined time based on user input
 		srand(time(0));
 		double chefTimeMin = 0.5*double(chefTime); // As specified in the requirements
@@ -142,19 +142,25 @@ int main(int argc, char* args[]) {
 		int choice = rand() % 3; // Simulating the chef picking two ingredients at random (three possible combinations)
 
 		sem_wait(shmSem);
+		if(mem[3] == saladTotal) { // To prevent any unneeded passes at the end
+			break;
+		}
+
 		if(choice == 0) { // Picking tomatoes and peppers for SM #0
-			mem[1] = 1;
-			mem[2] = 1;
+			mem[1] += 1;
+			mem[2] += 1;
 		}
 		else if(choice == 1) { // Picking tomatoes and onions for SM #1
-			mem[0] = 1;
-			mem[2] = 1;
+			mem[0] += 1;
+			mem[2] += 1;
 		}
 		else if(choice == 2) { // Picking onions and peppers for SM #2
-			mem[0] = 1;
-			mem[1] = 1;
+			mem[0] += 1;
+			mem[1] += 1;
 		}
 		sem_post(shmSem);
+
+		cout << "Chef selected SM #" << choice << endl; 
 		while(mem[choice + 7] == 1) { // If the selected SM is busy, wait until it becomes available
 			sleep(0.1);
 		}
@@ -188,7 +194,7 @@ int main(int argc, char* args[]) {
 		cerr << "Error detaching from shared memory!" << endl;
 	}
 	else {
-		cout << "Detachment successful, ID " << err << endl;
+		cout << "Chef detachment successful, ID " << err << endl;
 	}
 
 	err = shmctl(shmid, IPC_RMID, NULL); // Remove the segment
