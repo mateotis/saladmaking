@@ -12,14 +12,17 @@ using namespace std;
 
 int main (int argc, char* args[]) {
 
+	// Getting parametres from chef
 	string shmidStr = args[1];
 	int shmid = stoi(shmidStr);
-	string makerNumStr = args[2];
-	int makerNum = stoi(makerNumStr); 
+	string smNumStr = args[2];
+	int smNum = stoi(smNumStr); 
+	string saladTotalStr = args[3];
+	int saladTotal = stoi(saladTotalStr);
 
 	cout << "Saladmaker shmid: " << shmid << endl;
 
-	string semName = "sem" + makerNumStr;
+	string semName = "sem" + smNumStr;
 
 	sem_t *sem = sem_open(semName.c_str(), 0);
 	sem_t *shmSem = sem_open("/shmSem", 0);
@@ -34,38 +37,44 @@ int main (int argc, char* args[]) {
 		mem = reinterpret_cast<int*>(tempMem); // Now we have a proper int shared memory pointer 
 	}
 
-	int saladCount = 0; // How many salads this maker has made
+	//int saladCount = 0; // How many salads this maker has made
 
-	while(mem[3] < 10) {
+	while(mem[3] < saladTotal) {
 		sem_wait(sem);
 
-		cout << "SM #" << makerNumStr << " is awake!" << endl;
+		cout << "SM #" << smNumStr << " is awake!" << endl;
 
 		sem_wait(shmSem);
-		if(makerNum == 0) {
+		if(smNum == 0) {
 			mem[1] = 0;
 			mem[2] = 0;
 		}
-		else if(makerNum == 1) {
+		else if(smNum == 1) {
 			mem[0] = 0;
 			mem[2] = 0;
 		}
-		else if(makerNum == 2) {
+		else if(smNum == 2) {
 			mem[0] = 0;
 			mem[1] = 0;
 		}
+
+		if(mem[3] < saladTotal) { // An extra check to make sure the count doesn't get incremented extra at the end of execution
+			mem[3] += 1; // Increment the total salad counter
+			mem[smNum + 4] += 1; // Increment the specific SM's salad counter
+
+			cout << "SM #" << smNumStr << " made this many salads: " << mem[smNum + 4] << endl;
+			cout << "Current value of mem[3]: " << mem[3] << endl;
+		}		
+		
 		sem_post(shmSem);
-		saladCount++;
-		cout << "SM #" << makerNumStr << " made this many salads: " << saladCount << endl;
-		cout << "Current value of mem[3]: " << mem[3] << endl;
 	}
 
 
 	//exit(0);
 	
-	//mem[makerNum] = makerNum; /* Give it a different value */
+	//mem[smNum] = smNum; /* Give it a different value */
 	
-	//cout << "Changed mem" << makerNum << " is now " << mem[0] << endl;
+	//cout << "Changed mem" << smNum << " is now " << mem[0] << endl;
 	
 	int err = shmdt(mem); // Detach from the segment
 	if (err == -1) {

@@ -16,15 +16,43 @@
 
 using namespace std;
 
-int main() {
+int main(int argc, char* args[]) {
 
+	string saladTotalStr = "";
+	string chefTimeStr = "";
+	string smTimeStr = "";
+
+	// Default values, in case user omits some params
+	int saladTotal = 10;
+	int chefTime = 2;
+	int smTime = 1;
+
+	// Processing user input
+	for(int i = 0; i < argc; i++) {
+		if(strcmp(args[i], "-n") == 0) { // Parameter parsing code adapted from my mvote program, except we have many more params here
+			saladTotalStr = args[i+1];
+			saladTotal = stoi(saladTotalStr);
+		}
+		else if(strcmp(args[i], "-m") == 0) {
+			chefTimeStr = args[i+1];
+			chefTime = stoi(chefTimeStr); // Since the variable was defined outside the loop, this redefinition will apply globally too 
+		}
+		else if(strcmp(args[i], "-t") == 0) {
+			smTimeStr = args[i+1];
+			smTime = stoi(smTimeStr);
+		}
+	}
+
+	cout << "SALADMAKING SETTINGS" << endl << "Number of salads to be made: " << saladTotal << endl << "Chef resting base time: " << chefTime << endl << "Saladmaker working base time: " << smTime << endl;
+
+	// Creating one semaphore for each saladmaker
 	sem_t *sem0 = sem_open("/sem0", O_CREAT, 0640, 0);
 	sem_t *sem1 = sem_open("/sem1", O_CREAT, 0640, 0);
 	sem_t *sem2 = sem_open("/sem2", O_CREAT, 0640, 0);
 
 	sem_t *shmSem = sem_open("/shmSem", O_CREAT, 0640, 1); // Special semaphore for accessing the shared memory, only one process can have it at a time
 
-	sem_t* semArray[3] = {sem0, sem1, sem2};
+	sem_t* semArray[3] = {sem0, sem1, sem2}; // For ease of access
 
 	int shmid = shmget(IPC_PRIVATE, SHMSIZE, IPC_CREAT | 0640); // Correct permissions (0640 in this case) are super important, shmget() fails otherwise
 
@@ -43,18 +71,22 @@ int main() {
 		mem = reinterpret_cast<int*>(tempMem); // Now we have a proper int shared memory pointer 
 	}
 
-/*	mem[0] = 12;
-	mem[1] = 999;
-	mem[2] = -43;
-	cout << "Original mem0: " << mem[0] << endl;
-	cout << "Original mem1: " << mem[1] << endl;
-	cout << "Original mem2: " << mem[2] << endl;*/
+
+	// Initialising all variables in shared memory
+	mem[0] = 0; // Number of onions available
+	mem[1] = 0; // Number of peppers available
+	mem[2] = 0; // Number of tomatoes available
+	mem[3] = 0; // The current number of salads
+	mem[4] = 0; // Salads produced by SM #0
+	mem[5] = 0; // Salads produced by SM #1
+	mem[6] = 0; // Salads produced by SM #2
+
 
 	// Forking saladmaker child
 
 	int count = 0;
 	for(int childNum = 0; childNum < 3; childNum++) {
-		sleep(1); // Stagger the kids until I figure out how to make them play nice
+		sleep(0.1); // Stagger the kids until I figure out how to make them play nice
 		pid_t pid;
 		pid = fork();
 
@@ -71,12 +103,14 @@ int main() {
 			char* saladmakerChar = new char[30];
 			char* segmentIDChar = new char[30];
 			char* childNumChar = new char[30];
+			char* saladTotalChar = new char[30];
 
 			strcpy(segmentIDChar, segmentIDStr.c_str());
 			strcpy(saladmakerChar, saladmakerName.c_str());
 			strcpy(childNumChar, childNumStr.c_str());
+			strcpy(saladTotalChar, saladTotalStr.c_str());
 
-			char* arg[] = {saladmakerChar, segmentIDChar, childNumChar, NULL};
+			char* arg[] = {saladmakerChar, segmentIDChar, childNumChar, saladTotalChar, NULL};
 			execv("./saladmaker", arg);	// Start the saladmaker!
 		}
 /*		else {
@@ -94,8 +128,6 @@ int main() {
 		}*/
 	}
 
-	mem[3] = 0; // The current number of salads
-	int saladTotal = 10;
 	for(int i = 0; i < saladTotal; i++) {
 		sleep(1);
 
@@ -103,25 +135,26 @@ int main() {
 		int choice = rand() % 3;
 
 		sem_wait(shmSem);
-		if(choice == 0) {
+		if(choice == 0) { // Picking tomatoes and peppers for SM #0
 			mem[1] = 1;
 			mem[2] = 1;
 		}
-		else if(choice == 1) {
+		else if(choice == 1) { // Picking tomatoes and onions for SM #1
 			mem[0] = 1;
 			mem[2] = 1;
 		}
-		else if(choice == 2) {
+		else if(choice == 2) { // Picking onions and peppers for SM #2
 			mem[0] = 1;
 			mem[1] = 1;
 		}
 		sem_post(shmSem);
 		cout << "Waking up SM #" << choice << endl;
 		sem_post(semArray[choice]);
-		mem[3] += 1;
+		//mem[3] += 1;
 
 	}
 
+	sleep(2);
 	for(int i = 0; i < 3; i++) { // Unlock all semaphores so all saladmakers have a chance to gracefully finish
 		sem_post(semArray[i]);
 	}
@@ -131,7 +164,7 @@ int main() {
 	while ((pid = wait(&status)) != -1) {}
 
 	cout << "final status: " << endl;
-	for(int i = 0; i < 3; i++) {
+	for(int i = 0; i < 7; i++) {
 		cout << "mem" << i << ":" << mem[i] << endl;
 	}
 
