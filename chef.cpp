@@ -11,6 +11,8 @@
 #include <unistd.h> // For read/write and IPC
 #include <sys/wait.h> // For wait() and signals
 #include <ctime> // For seeding rand() with time()
+#include <iomanip> // For put_time()
+#include <fstream>
 
 #define SHMSIZE 1024 // Size of the shared memory segment; should be more than enough for our purposes
 #define SHMVARNUM 19 // Number of variables I use in shared memory
@@ -94,9 +96,11 @@ int main(int argc, char* args[]) {
 	mem[17] = 0; // Pepper weight for SM #2
 	mem[18] = 0; // Tomato weight for SM #2
 
+	remove("cheflog.txt"); // Delete file to clear it out before each run
+	ofstream fout;
+	fout.open("cheflog.txt", ios::app); // Opening file in append mode
 
-	// Forking saladmaker child
-
+	// Forking saladmaker children
 	int count = 0;
 	for(int childNum = 0; childNum < 3; childNum++) {
 		sleep(0.1); // Stagger the kids until I figure out how to make them play nice
@@ -137,6 +141,11 @@ int main(int argc, char* args[]) {
 		double f = (double)rand() / RAND_MAX;
 		double actualChefTime = chefTimeMin + f * (double(chefTime) - chefTimeMin);
 
+		// It's a little convoluted, but this is the only way I found to make a time format into an outputtable string (from the C++ reference)
+		time_t t = time(0);
+		tm tm = *localtime(&t); // "tm" is a time struct which contains all manners of time data  
+		fout << put_time(&tm, "%T") << " [CHEF] Resting for " << actualChefTime << "\n"; // %T is the shorthand for the classic hour:minute:second format
+
 		cout << "Chef resting for " << actualChefTime << endl;
 		sleep(actualChefTime);
 
@@ -161,15 +170,26 @@ int main(int argc, char* args[]) {
 		}
 		sem_post(shmSem);
 
+		t = time(0);
+		tm = *localtime(&t);
+		fout << put_time(&tm, "%T") << " [CHEF] Picked up ingredients for SM #" << choice << "\n";
 		cout << "Chef selected SM #" << choice << endl; 
+
 		while(mem[choice + 7] == 1) { // If the selected SM is busy, wait until it becomes available
 			sleep(0.1);
 		}
+
+		t = time(0);
+		tm = *localtime(&t);
+		fout << put_time(&tm, "%T") << " [CHEF] Telling SM #" << choice << " to take its ingredients\n";
 		cout << "Waking up SM #" << choice << endl;
 		sem_post(semArray[choice]);
 	}
 
-	sleep(2);
+	time_t t = time(0);
+	tm tm = *localtime(&t);
+	fout << put_time(&tm, "%T") << " [CHEF] " << saladTotal << " salads finished! Asking saladmakers to help clean up the kitchen...\n";
+
 	for(int i = 0; i < 3; i++) { // Unlock all semaphores so all saladmakers have a chance to gracefully finish
 		sem_post(semArray[i]);
 	}
@@ -182,6 +202,8 @@ int main(int argc, char* args[]) {
 	for(int i = 0; i < SHMVARNUM; i++) {
 		cout << "mem[" << i << "]: " << mem[i] << endl;
 	}
+
+	fout.close();
 
 	sem_close(sem0);
 	sem_unlink("/sem0");

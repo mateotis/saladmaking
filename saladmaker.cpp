@@ -8,6 +8,8 @@
 #include <string>
 #include <unistd.h> // For read/write and IPC
 #include <ctime>
+#include <fstream>
+#include <iomanip>
 
 using namespace std;
 
@@ -40,6 +42,11 @@ int main (int argc, char* args[]) {
 		mem = reinterpret_cast<int*>(tempMem); // Now we have a proper int shared memory pointer 
 	}
 
+	string outFile = "sm" + smNumStr + "log.txt";
+	remove(outFile.c_str()); // Because of course it only takes a char array
+	ofstream fout;
+	fout.open(outFile, ios::app); // Opening file in append mode
+
 	//int saladCount = 0; // How many salads this maker has made
 
 	int currentOnionWeight = 0;
@@ -47,9 +54,16 @@ int main (int argc, char* args[]) {
 	int currentTomatoWeight = 0;
 
 	while(mem[3] < saladTotal) {
+
+		time_t t = time(0);
+		tm tm = *localtime(&t);
+		fout << put_time(&tm, "%T") << " [SM #" << smNum << "] Waiting for ingredients...\n";
 		cout << "SM #" << smNum << " going to sleep..." << endl;
 		sem_wait(sem);
 
+		t = time(0);
+		tm = *localtime(&t);
+		fout << put_time(&tm, "%T") << " [SM #" << smNum << "] Awake and ready to work!\n";
 		cout << "SM #" << smNumStr << " is awake!" << endl;
 
 		if(mem[3] == saladTotal) { // Need an extra finish check because otherwise some of the saladmakers might go through their loop one more time than needed
@@ -94,11 +108,18 @@ int main (int argc, char* args[]) {
 		
 		sem_post(shmSem);
 
+		t = time(0);
+		tm = *localtime(&t);
+		fout << put_time(&tm, "%T") << " [SM #" << smNum << "] Taken ingredients from chef, now measuring...\n";
+
 		// Measure the other two ingredients that we got from the chef
 		if(smNum == 0) {
 			currentPepperWeight += rand() % 20 + 40; // Important to use += instead of = to ensure that even if we have to pick an ingredient twice, we save the previous weight
 			currentTomatoWeight += rand() % 32 + 64;
 			if(currentPepperWeight < 50 || currentTomatoWeight < 80) {
+				t = time(0);
+				tm = *localtime(&t);
+				fout << put_time(&tm, "%T") << " [SM #" << smNum << "] The ingredients don't reach the required weight! Need to wait another round\n";
 				sem_wait(shmSem);
 				mem[smNum + 7] = 0;
 				sem_post(shmSem);
@@ -109,6 +130,9 @@ int main (int argc, char* args[]) {
 			currentOnionWeight += rand() % 12 + 24;
 			currentTomatoWeight += rand() % 32 + 64;
 			if(currentOnionWeight < 30 || currentTomatoWeight < 80) {
+				t = time(0);
+				tm = *localtime(&t);
+				fout << put_time(&tm, "%T") << " [SM #" << smNum << "] The ingredients don't reach the required weight! Need to wait another round\n";
 				sem_wait(shmSem);
 				mem[smNum + 7] = 0;
 				sem_post(shmSem);
@@ -119,6 +143,9 @@ int main (int argc, char* args[]) {
 			currentOnionWeight += rand() % 12 + 24;
 			currentPepperWeight += rand() % 20 + 40;
 			if(currentPepperWeight < 50 || currentOnionWeight < 30) {
+				t = time(0);
+				tm = *localtime(&t);
+				fout << put_time(&tm, "%T") << " [SM #" << smNum << "] The ingredients don't reach the required weight! Need to wait another round\n";
 				sem_wait(shmSem);
 				mem[smNum + 7] = 0;
 				sem_post(shmSem);
@@ -126,12 +153,20 @@ int main (int argc, char* args[]) {
 			}
 		}
 
+		t = time(0);
+		tm = *localtime(&t);
+		fout << put_time(&tm, "%T") << " [SM #" << smNum << "] Gathered this much of each ingredient: " << currentPepperWeight << "g pepper, " << currentOnionWeight << "g onion, " << currentTomatoWeight << "g tomato" << "\n";
+
 		cout << "SM #" << smNum << " has this much of each ingredient: " << currentPepperWeight << " pepper, " << currentOnionWeight << " onion, " << currentTomatoWeight << " tomato" << endl;
 
 		srand(time(0));
 		double smTimeMin = 0.8*double(smTime); // As specified in the requirements
 		double f = (double)rand() / RAND_MAX;
 		double actualSMTime = smTimeMin + f * (double(smTime) - smTimeMin);
+
+		t = time(0);
+		tm = *localtime(&t);
+		fout << put_time(&tm, "%T") << " [SM #" << smNum << "] Chopping up ingredients for " << to_string(actualSMTime) << "\n";
 
 		cout << "SM #" << smNum << " working for: " << actualSMTime << endl;
 		sleep(actualSMTime); // I know this looks like the saladmakers are sleeping on the job, but trust me, they're actually hard at work!
@@ -145,6 +180,10 @@ int main (int argc, char* args[]) {
 			mem[11 + 3*smNum] += currentPepperWeight;
 			mem[12 + 3*smNum] += currentTomatoWeight;
 
+			t = time(0);
+			tm = *localtime(&t);
+			fout << put_time(&tm, "%T") << " [SM #" << smNum << "] Salad #" << mem[smNum + 4] << " finished!\n";
+
 			cout << "SM #" << smNum << " made this many salads: " << mem[smNum + 4] << endl;
 			cout << "Current value of mem[3]: " << mem[3] << endl;
 
@@ -157,6 +196,12 @@ int main (int argc, char* args[]) {
 		sem_post(shmSem);
 
 	}
+
+	time_t t = time(0);
+	tm tm = *localtime(&t);
+	fout << put_time(&tm, "%T") << " [SM #" << smNum << "] Cleaning up the kitchen\n";	
+
+	fout.close();
 	
 	int err = shmdt(mem); // Detach from the segment
 	if (err == -1) {
