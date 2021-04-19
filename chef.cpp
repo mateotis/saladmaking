@@ -13,6 +13,7 @@
 #include <ctime> // For seeding rand() with time()
 
 #define SHMSIZE 1024 // Size of the shared memory segment; should be more than enough for our purposes
+#define SHMVARNUM 19 // Number of variables I use in shared memory
 
 using namespace std;
 
@@ -107,7 +108,7 @@ int main(int argc, char* args[]) {
 			return -1;
 		} 
 		else if(pid == 0) { // In child
-			// The tried-and-tested int->string->char argument passing procedure (I do wish there was a more convenient way...)
+			// The tried-and-tested int->string->char argument passing procedure from myhie (I do wish there was a more convenient way...)
 			string saladmakerName = "saladmaker"; // Could just pass it as a string directly to execv() but the compiler would complain; this is cleaner
 			string segmentIDStr = to_string(shmid);
 			string childNumStr = to_string(childNum);
@@ -178,8 +179,8 @@ int main(int argc, char* args[]) {
 	while ((pid = wait(&status)) != -1) {}
 
 	cout << "final status: " << endl;
-	for(int i = 0; i < 7; i++) {
-		cout << "mem" << i << ":" << mem[i] << endl;
+	for(int i = 0; i < SHMVARNUM; i++) {
+		cout << "mem[" << i << "]: " << mem[i] << endl;
 	}
 
 	sem_close(sem0);
@@ -188,6 +189,8 @@ int main(int argc, char* args[]) {
 	sem_unlink("/sem1");
 	sem_close(sem2);
 	sem_unlink("/sem2");
+	sem_close(shmSem);
+	sem_unlink("/shmSem");
 
 	int err = shmdt(mem); // Detach from the segment
 	if (err == -1) {

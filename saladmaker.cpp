@@ -7,6 +7,7 @@
 #include <iostream>
 #include <string>
 #include <unistd.h> // For read/write and IPC
+#include <ctime>
 
 using namespace std;
 
@@ -139,6 +140,10 @@ int main (int argc, char* args[]) {
 		if(mem[3] < saladTotal) { // An extra check to make sure the count doesn't get incremented extra at the end of execution
 			mem[3] += 1; // Increment the total salad counter
 			mem[smNum + 4] += 1; // Increment the specific SM's salad counter
+
+			mem[10 + 3*smNum] += currentOnionWeight; // Add ingredient weight statistics to shared memory
+			mem[11 + 3*smNum] += currentPepperWeight;
+			mem[12 + 3*smNum] += currentTomatoWeight;
 
 			cout << "SM #" << smNum << " made this many salads: " << mem[smNum + 4] << endl;
 			cout << "Current value of mem[3]: " << mem[3] << endl;
