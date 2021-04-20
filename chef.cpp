@@ -29,6 +29,7 @@ int main(int argc, char* args[]) {
 	int saladTotal = 10;
 	int chefTime = 2;
 	int smTime = 1;
+	bool resetMode = false;
 
 	// Processing user input
 	for(int i = 0; i < argc; i++) {
@@ -44,9 +45,20 @@ int main(int argc, char* args[]) {
 			smTimeStr = args[i+1];
 			smTime = stoi(smTimeStr);
 		}
+		else if(strcmp(args[i], "-rm") == 0) {
+			resetMode = true;
+		}
 	}
 
 	cout << "SALADMAKING SETTINGS" << endl << "Number of salads to be made: " << saladTotal << endl << "Chef resting base time: " << chefTime << endl << "Saladmaker working base time: " << smTime << endl;
+
+	if(resetMode == true) { // A fallback in case the execution is interrupted - activated by the user with the -rm parameter
+		sem_unlink("/sem0");
+		sem_unlink("/sem1");
+		sem_unlink("/sem2");
+		sem_unlink("/shmSem");
+		exit(0);
+	}
 
 	// Creating one semaphore for each saladmaker
 	sem_t *sem0 = sem_open("/sem0", O_CREAT, 0640, 0);
@@ -106,18 +118,42 @@ int main(int argc, char* args[]) {
 	ofstream fout;
 	fout.open("cheflog.txt", ios::app); // Opening file in append mode
 
+	// Set up logger before we set up the saladmakers
+	pid_t pid;
+	pid = fork();
+
+	if(pid < 0) { // Error handling
+		cerr << "Error: could not start logger child process." << endl;
+		return -1;
+	} 
+	else if(pid == 0) { // In logger
+		string loggerName = "logger";
+		string segmentIDStr = to_string(shmid);
+
+		char* loggerChar = new char[30];
+		char* segmentIDChar = new char[30];
+		char* saladTotalChar = new char[30];
+
+		strcpy(loggerChar, loggerName.c_str());
+		strcpy(segmentIDChar, segmentIDStr.c_str());
+		strcpy(saladTotalChar, saladTotalStr.c_str());
+
+		char* arg[] = {loggerChar, segmentIDChar, saladTotalChar, NULL};
+		execv("./logger", arg);	// Start the logger!
+	}
+
 	// Forking saladmaker children
 	int count = 0;
 	for(int childNum = 0; childNum < 3; childNum++) {
-		sleep(0.1); // Stagger the kids until I figure out how to make them play nice
+		sleep(0.1); // Stagger the kids a little
 		pid_t pid;
 		pid = fork();
 
 		if(pid < 0) { // Error handling
-			cerr << "Error: could not start worker child process." << endl;
+			cerr << "Error: could not start saladmaker child process." << endl;
 			return -1;
 		} 
-		else if(pid == 0) { // In child
+		else if(pid == 0) { // In saladmaker
 			// The tried-and-tested int->string->char argument passing procedure from myhie (I do wish there was a more convenient way...)
 			string saladmakerName = "saladmaker"; // Could just pass it as a string directly to execv() but the compiler would complain; this is cleaner
 			string segmentIDStr = to_string(shmid);
@@ -140,6 +176,7 @@ int main(int argc, char* args[]) {
 		}
 	}
 
+	// TO DO: rewrite while loop to not rely on accessing shared memory?
 	while(mem[3] < saladTotal) {
 		// Before each serving of ingredients, the chef rests for a randomly determined time based on user input
 
@@ -192,6 +229,9 @@ int main(int argc, char* args[]) {
 		fout << put_time(&tm, "%T") << " [CHEF] Telling SM #" << choice << " to take its ingredients\n";
 		cout << "Waking up SM #" << choice << endl;
 		sem_post(semArray[choice]);
+
+		fout.close();
+		fout.open("cheflog.txt", ios::app); // This makes it so that the log files are updated on each iteration; it helps with debugging if anyone gets stuck
 	}
 
 	time_t t = time(0);
@@ -202,11 +242,11 @@ int main(int argc, char* args[]) {
 		sem_post(semArray[i]);
 	}
 
-	pid_t pid;
+	pid_t pidChild;
 	int status = 0;
-	while ((pid = wait(&status)) != -1) {}
+	while ((pidChild = wait(&status)) != -1) {} // Wait for all the children to finish
 
-	cout << "final status: " << endl;
+	cout << "Final status: " << endl;
 	for(int i = 0; i < SHMVARNUM; i++) {
 		cout << "mem[" << i << "]: " << mem[i] << endl;
 	}

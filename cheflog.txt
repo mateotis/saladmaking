@@ -1,55 +1,49 @@
-16:54:49 [CHEF] Resting for 1.83755
-16:54:50 [CHEF] Picked up ingredients for SM #2
-16:54:50 [CHEF] Telling SM #2 to take its ingredients
-16:54:50 [CHEF] Resting for 1.19165
-16:54:51 [CHEF] Picked up ingredients for SM #0
-16:54:51 [CHEF] Telling SM #0 to take its ingredients
-16:54:51 [CHEF] Resting for 1.5453
-16:54:52 [CHEF] Picked up ingredients for SM #1
-16:54:52 [CHEF] Telling SM #1 to take its ingredients
-16:54:52 [CHEF] Resting for 1.40626
-16:54:53 [CHEF] Picked up ingredients for SM #1
-16:54:54 [CHEF] Telling SM #1 to take its ingredients
-16:54:54 [CHEF] Resting for 1.1256
-16:54:55 [CHEF] Picked up ingredients for SM #1
-16:54:55 [CHEF] Telling SM #1 to take its ingredients
-16:54:55 [CHEF] Resting for 1.98198
-16:54:56 [CHEF] Picked up ingredients for SM #2
-16:54:56 [CHEF] Telling SM #2 to take its ingredients
-16:54:56 [CHEF] Resting for 1.84007
-16:54:57 [CHEF] Picked up ingredients for SM #2
-16:54:58 [CHEF] Telling SM #2 to take its ingredients
-16:54:58 [CHEF] Resting for 1.06304
-16:54:59 [CHEF] Picked up ingredients for SM #2
-16:55:00 [CHEF] Telling SM #2 to take its ingredients
-16:55:00 [CHEF] Resting for 1.77937
-16:55:01 [CHEF] Picked up ingredients for SM #0
-16:55:01 [CHEF] Telling SM #0 to take its ingredients
-16:55:01 [CHEF] Resting for 1.63382
-16:55:02 [CHEF] Picked up ingredients for SM #0
-16:55:03 [CHEF] Telling SM #0 to take its ingredients
-16:55:03 [CHEF] Resting for 1.34867
-16:55:04 [CHEF] Picked up ingredients for SM #2
-16:55:04 [CHEF] Telling SM #2 to take its ingredients
-16:55:04 [CHEF] Resting for 1.70941
-16:55:05 [CHEF] Picked up ingredients for SM #2
-16:55:06 [CHEF] Telling SM #2 to take its ingredients
-16:55:06 [CHEF] Resting for 1.92517
-16:55:07 [CHEF] Picked up ingredients for SM #1
-16:55:07 [CHEF] Telling SM #1 to take its ingredients
-16:55:07 [CHEF] Resting for 1.28324
-16:55:08 [CHEF] Picked up ingredients for SM #1
-16:55:08 [CHEF] Telling SM #1 to take its ingredients
-16:55:08 [CHEF] Resting for 1.64329
-16:55:09 [CHEF] Picked up ingredients for SM #1
-16:55:10 [CHEF] Telling SM #1 to take its ingredients
-16:55:10 [CHEF] Resting for 1.35787
-16:55:11 [CHEF] Picked up ingredients for SM #0
-16:55:11 [CHEF] Telling SM #0 to take its ingredients
-16:55:11 [CHEF] Resting for 1.21785
-16:55:12 [CHEF] Picked up ingredients for SM #1
-16:55:12 [CHEF] Telling SM #1 to take its ingredients
-16:55:12 [CHEF] Resting for 1.07582
-16:55:13 [CHEF] Picked up ingredients for SM #0
-16:55:13 [CHEF] Telling SM #0 to take its ingredients
-16:55:13 [CHEF] 10 salads finished! Asking saladmakers to help clean up the kitchen...
+20:26:39 [CHEF] Resting for 1.34092
+20:26:40 [CHEF] Picked up ingredients for SM #1
+20:26:40 [CHEF] Telling SM #1 to take its ingredients
+20:26:40 [CHEF] Resting for 1.69694
+20:26:41 [CHEF] Picked up ingredients for SM #0
+20:26:41 [CHEF] Telling SM #0 to take its ingredients
+20:26:41 [CHEF] Resting for 1.05078
+20:26:42 [CHEF] Picked up ingredients for SM #1
+20:26:44 [CHEF] Telling SM #1 to take its ingredients
+20:26:44 [CHEF] Resting for 1.62454
+20:26:45 [CHEF] Picked up ingredients for SM #1
+20:26:48 [CHEF] Telling SM #1 to take its ingredients
+20:26:48 [CHEF] Resting for 1.064
+20:26:49 [CHEF] Picked up ingredients for SM #2
+20:26:49 [CHEF] Telling SM #2 to take its ingredients
+20:26:49 [CHEF] Resting for 1.42679
+20:26:50 [CHEF] Picked up ingredients for SM #2
+20:26:53 [CHEF] Telling SM #2 to take its ingredients
+20:26:53 [CHEF] Resting for 1.85607
+20:26:54 [CHEF] Picked up ingredients for SM #0
+20:26:54 [CHEF] Telling SM #0 to take its ingredients
+20:26:54 [CHEF] Resting for 1.21575
+20:26:55 [CHEF] Picked up ingredients for SM #2
+20:26:55 [CHEF] Telling SM #2 to take its ingredients
+20:26:55 [CHEF] Resting for 1.57442
+20:26:56 [CHEF] Picked up ingredients for SM #0
+20:26:58 [CHEF] Telling SM #0 to take its ingredients
+20:26:58 [CHEF] Resting for 1.64838
+20:26:59 [CHEF] Picked up ingredients for SM #1
+20:26:59 [CHEF] Telling SM #1 to take its ingredients
+20:26:59 [CHEF] Resting for 1.0056
+20:27:00 [CHEF] Picked up ingredients for SM #1
+20:27:03 [CHEF] Telling SM #1 to take its ingredients
+20:27:03 [CHEF] Resting for 1.93817
+20:27:04 [CHEF] Picked up ingredients for SM #1
+20:27:04 [CHEF] Telling SM #1 to take its ingredients
+20:27:04 [CHEF] Resting for 1.79799
+20:27:05 [CHEF] Picked up ingredients for SM #2
+20:27:05 [CHEF] Telling SM #2 to take its ingredients
+20:27:05 [CHEF] Resting for 1.65438
+20:27:06 [CHEF] Picked up ingredients for SM #0
+20:27:06 [CHEF] Telling SM #0 to take its ingredients
+20:27:06 [CHEF] Resting for 1.51409
+20:27:07 [CHEF] Picked up ingredients for SM #0
+20:27:07 [CHEF] Telling SM #0 to take its ingredients
+20:27:07 [CHEF] Resting for 1.37753
+20:27:08 [CHEF] Picked up ingredients for SM #0
+20:27:11 [CHEF] Telling SM #0 to take its ingredients
+20:27:11 [CHEF] 10 salads finished! Asking saladmakers to help clean up the kitchen...

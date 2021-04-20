@@ -75,11 +75,11 @@ int main (int argc, char* args[]) {
 		fout << put_time(&tm, "%T") << " [SM #" << smNum << "] Awake and ready to work!\n";
 		cout << "SM #" << smNumStr << " is awake!" << endl;
 
-		auto workTimeStart = chrono::system_clock::now();
-
 		if(mem[3] == saladTotal) { // Need an extra finish check because otherwise some of the saladmakers might go through their loop one more time than needed
 			break; // If we're done, you can go home, no need to try to weigh/calculate anything else!
 		}
+
+		auto workTimeStart = chrono::system_clock::now();
 
 		// Weigh each SM's always-available ingredient first
 		srand(time(0));
@@ -194,6 +194,10 @@ int main (int argc, char* args[]) {
 		cout << "SM #" << smNum << " working for: " << actualSMTime << endl;
 		sleep(actualSMTime); // I know this looks like the saladmakers are sleeping on the job, but trust me, they're actually hard at work!
 
+		if(mem[3] == saladTotal) { // In extremely rare cases, a saladmaker would get assigned the final salad and get to this point, only for the chef to assign it to another one before the SM finished, making the program hang
+			break; // This should fix it
+		}
+
 		sem_wait(shmSem);
 		if(mem[3] < saladTotal) { // An extra check to make sure the count doesn't get incremented extra at the end of execution
 			mem[3] += 1; // Increment the total salad counter
@@ -214,13 +218,17 @@ int main (int argc, char* args[]) {
 			currentPepperWeight = 0;
 			currentTomatoWeight = 0;
 
-			mem[smNum + 7] = 0; // SM is no longer busy		
+			mem[smNum + 7] = 0; // SM is no longer busy
 		}
+		mem[smNum + 7] = 0; // Safeguard in case the above if block doesn't trigger and consequently the SM never becomes available
 		sem_post(shmSem);
 
 		auto workTimeEnd = chrono::system_clock::now();
 		auto workTime = chrono::duration_cast<chrono::seconds>(workTimeEnd - workTimeStart); // Have to use duration_cast as it usually gives time in float formats
 		workTimeTotal += workTime.count();
+
+		fout.close();
+		fout.open(outFile, ios::app); // This makes it so that the log files are updated on each iteration; it helps with debugging if anyone gets stuck
 
 	}
 
