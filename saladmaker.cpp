@@ -10,6 +10,7 @@
 #include <ctime>
 #include <fstream>
 #include <iomanip>
+#include <chrono>
 
 using namespace std;
 
@@ -47,7 +48,8 @@ int main (int argc, char* args[]) {
 	ofstream fout;
 	fout.open(outFile, ios::app); // Opening file in append mode
 
-	//int saladCount = 0; // How many salads this maker has made
+	int workTimeTotal = 0; // A variable to store the total time the saladmaker spent working
+	int waitTimeTotal = 0; // Ditto, for time spent waiting on the semaphore
 
 	int currentOnionWeight = 0;
 	int currentPepperWeight = 0;
@@ -59,12 +61,21 @@ int main (int argc, char* args[]) {
 		tm tm = *localtime(&t);
 		fout << put_time(&tm, "%T") << " [SM #" << smNum << "] Waiting for ingredients...\n";
 		cout << "SM #" << smNum << " going to sleep..." << endl;
+
+		auto waitTimeStart = chrono::system_clock::now(); // Start tracking the waiting time
+
 		sem_wait(sem);
+
+		auto waitTimeEnd = chrono::system_clock::now();
+		auto waitTime = chrono::duration_cast<chrono::seconds>(waitTimeEnd - waitTimeStart); // Have to use duration_cast as it usually gives time in float formats
+		waitTimeTotal += waitTime.count();
 
 		t = time(0);
 		tm = *localtime(&t);
 		fout << put_time(&tm, "%T") << " [SM #" << smNum << "] Awake and ready to work!\n";
 		cout << "SM #" << smNumStr << " is awake!" << endl;
+
+		auto workTimeStart = chrono::system_clock::now();
 
 		if(mem[3] == saladTotal) { // Need an extra finish check because otherwise some of the saladmakers might go through their loop one more time than needed
 			break; // If we're done, you can go home, no need to try to weigh/calculate anything else!
@@ -121,8 +132,12 @@ int main (int argc, char* args[]) {
 				tm = *localtime(&t);
 				fout << put_time(&tm, "%T") << " [SM #" << smNum << "] The ingredients don't reach the required weight! Need to wait another round\n";
 				sem_wait(shmSem);
-				mem[smNum + 7] = 0;
+				mem[smNum + 7] = 0; // Set SM to available
 				sem_post(shmSem);
+
+				auto workTimeEnd = chrono::system_clock::now(); // Making sure we catch all cases, even when the worker goes back to waiting - otherwise, we would lose the time it spent weighing for that round, no matter how insignificant it might be
+				auto workTime = chrono::duration_cast<chrono::seconds>(workTimeEnd - workTimeStart);
+				workTimeTotal += workTime.count();
 				continue;
 			}
 		}
@@ -134,8 +149,12 @@ int main (int argc, char* args[]) {
 				tm = *localtime(&t);
 				fout << put_time(&tm, "%T") << " [SM #" << smNum << "] The ingredients don't reach the required weight! Need to wait another round\n";
 				sem_wait(shmSem);
-				mem[smNum + 7] = 0;
+				mem[smNum + 7] = 0; // Set SM to available
 				sem_post(shmSem);
+
+				auto workTimeEnd = chrono::system_clock::now(); // Making sure we catch all cases, even when the worker goes back to waiting - otherwise, we would lose the time it spent weighing for that round, no matter how insignificant it might be
+				auto workTime = chrono::duration_cast<chrono::seconds>(workTimeEnd - workTimeStart);
+				workTimeTotal += workTime.count();				
 				continue;
 			}
 		}
@@ -147,8 +166,12 @@ int main (int argc, char* args[]) {
 				tm = *localtime(&t);
 				fout << put_time(&tm, "%T") << " [SM #" << smNum << "] The ingredients don't reach the required weight! Need to wait another round\n";
 				sem_wait(shmSem);
-				mem[smNum + 7] = 0;
+				mem[smNum + 7] = 0; // Set SM to available
 				sem_post(shmSem);
+
+				auto workTimeEnd = chrono::system_clock::now(); // Making sure we catch all cases, even when the worker goes back to waiting - otherwise, we would lose the time it spent weighing for that round, no matter how insignificant it might be
+				auto workTime = chrono::duration_cast<chrono::seconds>(workTimeEnd - workTimeStart);
+				workTimeTotal += workTime.count();
 				continue;
 			}
 		}
@@ -195,7 +218,18 @@ int main (int argc, char* args[]) {
 		}
 		sem_post(shmSem);
 
+		auto workTimeEnd = chrono::system_clock::now();
+		auto workTime = chrono::duration_cast<chrono::seconds>(workTimeEnd - workTimeStart); // Have to use duration_cast as it usually gives time in float formats
+		workTimeTotal += workTime.count();
+
 	}
+
+	cout << "Total work time for SM #" << smNum << ": " << workTimeTotal << endl;
+	cout << "Total wait time for SM #" << smNum << ": " << waitTimeTotal << endl;
+	sem_wait(shmSem);
+	mem[19 + 2*smNum] = workTimeTotal; // Update final counters - this way, we only need one pass at the shared memory
+	mem[20 + 2*smNum] = waitTimeTotal;
+	sem_post(shmSem);
 
 	time_t t = time(0);
 	tm tm = *localtime(&t);

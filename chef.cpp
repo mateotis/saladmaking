@@ -10,12 +10,12 @@
 #include <cstring>
 #include <unistd.h> // For read/write and IPC
 #include <sys/wait.h> // For wait() and signals
-#include <ctime> // For seeding rand() with time()
+#include <ctime> // For the "temporal" part of "temporal log"
 #include <iomanip> // For put_time()
 #include <fstream>
 
 #define SHMSIZE 1024 // Size of the shared memory segment; should be more than enough for our purposes
-#define SHMVARNUM 19 // Number of variables I use in shared memory
+#define SHMVARNUM 25 // Number of variables I use in shared memory
 
 using namespace std;
 
@@ -95,6 +95,12 @@ int main(int argc, char* args[]) {
 	mem[16] = 0; // Onion weight for SM #2
 	mem[17] = 0; // Pepper weight for SM #2
 	mem[18] = 0; // Tomato weight for SM #2
+	mem[19] = 0; // Total work time for SM #0
+	mem[20] = 0; // Total wait time for SM #0
+	mem[21] = 0; // Total work time for SM #1
+	mem[22] = 0; // Total wait time for SM #1
+	mem[23] = 0; // Total work time for SM #2
+	mem[24] = 0; // Total wait time for SM #2
 
 	remove("cheflog.txt"); // Delete file to clear it out before each run
 	ofstream fout;
@@ -136,6 +142,11 @@ int main(int argc, char* args[]) {
 
 	while(mem[3] < saladTotal) {
 		// Before each serving of ingredients, the chef rests for a randomly determined time based on user input
+
+		if(mem[3] == saladTotal) { // To prevent any unneeded passes at the end
+			break;
+		}		
+
 		srand(time(0));
 		double chefTimeMin = 0.5*double(chefTime); // As specified in the requirements
 		double f = (double)rand() / RAND_MAX;
@@ -152,9 +163,6 @@ int main(int argc, char* args[]) {
 		int choice = rand() % 3; // Simulating the chef picking two ingredients at random (three possible combinations)
 
 		sem_wait(shmSem);
-		if(mem[3] == saladTotal) { // To prevent any unneeded passes at the end
-			break;
-		}
 
 		if(choice == 0) { // Picking tomatoes and peppers for SM #0
 			mem[1] += 1;
