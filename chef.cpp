@@ -67,7 +67,7 @@ int main(int argc, char* args[]) {
 	sem_t *sem2 = sem_open("/sem2", O_CREAT, 0640, 0);
 
 	sem_t *shmSem = sem_open("/shmSem", O_CREAT, 0640, 1); // Special semaphore for accessing the shared memory, only one process can have it at a time
-	sem_t *outSem = sem_open("/outSem", O_CREAT, 0640, 1);
+	sem_t *outSem = sem_open("/outSem", O_CREAT, 0640, 1); // Controls access to output log file
 
 	sem_t* semArray[3] = {sem0, sem1, sem2}; // For ease of access
 

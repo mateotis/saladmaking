@@ -39,22 +39,30 @@ int main (int argc, char* args[]) {
 	fout.open(outFile, ios::app); // Opening file in append mode
 
 	bool timerGoing = false;
+	time_t t = time(0);
+	tm tmStart = *localtime(&t); // Set up initial values outside the loop so we can access the most recent times from sides of the if/else
+	tm tmEnd = *localtime(&t);
 
 	while(mem[3] < saladTotal) { // Check for busyness
 		if((mem[7] + mem[8] + mem[9] > 1)) { // Measure concurrent time periods - aka when at least two saladmakers are busy
 			if(timerGoing == false) { // If the timer is not running already, start it
-				time_t t = time(0);
-				tm tm = *localtime(&t);
-				fout << put_time(&tm, "%T") << " - "; // Record start time of concurrent period
+				t = time(0);
+				tmStart = *localtime(&t);
+				fout << put_time(&tmStart, "%T") << " - "; // Record start time of concurrent period
 				timerGoing = true; // So that we know we have a running timer				
 			}
-			sleep(1); // Check if it's still concurrent after a second to avoid spamming of the log file
+			//sleep(1); // Check if it's still concurrent after a second to avoid spamming of the log file
 		}
 		else {
 			if(timerGoing == true) { // Record end time of concurrent period
-				time_t t = time(0);
-				tm tm = *localtime(&t);
-				fout << put_time(&tm, "%T") << "\n";
+				t = time(0);
+				tmEnd = *localtime(&t);
+				if(tmEnd.tm_sec <= tmStart.tm_sec + 1) { // Don't reset the timer if less than a second has passed since it was started, since we're not tracking millisecond changes
+					continue;
+				}
+				fout << put_time(&tmEnd, "%T") << "\n";
+				fout.close();
+				fout.open("concurrentlog.txt", ios::app); // This makes it so that the log files are updated on each iteration; it helps with debugging if anyone gets stuck
 				timerGoing = false;
 			}
 		}
@@ -64,8 +72,6 @@ int main (int argc, char* args[]) {
 		time_t t = time(0);
 		tm tm = *localtime(&t);
 		fout << put_time(&tm, "%T") << "\n";
-		fout.close();
-		fout.open("cheflog.txt", ios::app); // This makes it so that the log files are updated on each iteration; it helps with debugging if anyone gets stuck
 		timerGoing = false;
 	}
 
