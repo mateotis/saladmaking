@@ -57,6 +57,7 @@ int main(int argc, char* args[]) {
 		sem_unlink("/sem1");
 		sem_unlink("/sem2");
 		sem_unlink("/shmSem");
+		sem_unlink("/outSem");
 		exit(0);
 	}
 
@@ -66,6 +67,7 @@ int main(int argc, char* args[]) {
 	sem_t *sem2 = sem_open("/sem2", O_CREAT, 0640, 0);
 
 	sem_t *shmSem = sem_open("/shmSem", O_CREAT, 0640, 1); // Special semaphore for accessing the shared memory, only one process can have it at a time
+	sem_t *outSem = sem_open("/outSem", O_CREAT, 0640, 1);
 
 	sem_t* semArray[3] = {sem0, sem1, sem2}; // For ease of access
 
@@ -114,9 +116,9 @@ int main(int argc, char* args[]) {
 	mem[23] = 0; // Total work time for SM #2
 	mem[24] = 0; // Total wait time for SM #2
 
-	remove("cheflog.txt"); // Delete file to clear it out before each run
+	remove("saladlog.txt"); // Delete file to clear it out before each run
 	ofstream fout;
-	fout.open("cheflog.txt", ios::app); // Opening file in append mode
+	fout.open("saladlog.txt", ios::app); // Opening file in append mode
 
 	// Set up logger before we set up the saladmakers
 	pid_t pid;
@@ -191,8 +193,10 @@ int main(int argc, char* args[]) {
 
 		// It's a little convoluted, but this is the only way I found to make a time format into an outputtable string (from the C++ reference)
 		time_t t = time(0);
-		tm tm = *localtime(&t); // "tm" is a time struct which contains all manners of time data  
+		tm tm = *localtime(&t); // "tm" is a time struct which contains all manners of time data
+		sem_wait(outSem);
 		fout << put_time(&tm, "%T") << " [CHEF] Resting for " << actualChefTime << "\n"; // %T is the shorthand for the classic hour:minute:second format
+		sem_post(outSem);
 
 		cout << "Chef resting for " << actualChefTime << endl;
 		sleep(actualChefTime);
@@ -217,8 +221,10 @@ int main(int argc, char* args[]) {
 
 		t = time(0);
 		tm = *localtime(&t);
+		sem_wait(outSem);
 		fout << put_time(&tm, "%T") << " [CHEF] Picked up ingredients for SM #" << choice << "\n";
-		cout << "Chef selected SM #" << choice << endl; 
+		cout << "Chef selected SM #" << choice << endl;
+		sem_post(outSem);
 
 		while(mem[choice + 7] == 1) { // If the selected SM is busy, wait until it becomes available
 			sleep(0.1);
@@ -226,17 +232,21 @@ int main(int argc, char* args[]) {
 
 		t = time(0);
 		tm = *localtime(&t);
+		sem_wait(outSem);
 		fout << put_time(&tm, "%T") << " [CHEF] Telling SM #" << choice << " to take its ingredients\n";
 		cout << "Waking up SM #" << choice << endl;
+		sem_post(outSem);
 		sem_post(semArray[choice]);
 
 		fout.close();
-		fout.open("cheflog.txt", ios::app); // This makes it so that the log files are updated on each iteration; it helps with debugging if anyone gets stuck
+		fout.open("saladlog.txt", ios::app); // This makes it so that the log files are updated on each iteration; it helps with debugging if anyone gets stuck
 	}
 
 	time_t t = time(0);
 	tm tm = *localtime(&t);
+	sem_wait(outSem);
 	fout << put_time(&tm, "%T") << " [CHEF] " << saladTotal << " salads finished! Asking saladmakers to help clean up the kitchen...\n";
+	sem_post(outSem);
 
 	for(int i = 0; i < 3; i++) { // Unlock all semaphores so all saladmakers have a chance to gracefully finish
 		sem_post(semArray[i]);
@@ -261,6 +271,8 @@ int main(int argc, char* args[]) {
 	sem_unlink("/sem2");
 	sem_close(shmSem);
 	sem_unlink("/shmSem");
+	sem_close(outSem);
+	sem_unlink("/outSem");
 
 	int err = shmdt(mem); // Detach from the segment
 	if (err == -1) {

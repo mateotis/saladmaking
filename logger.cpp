@@ -39,30 +39,37 @@ int main (int argc, char* args[]) {
 	fout.open(outFile, ios::app); // Opening file in append mode
 
 	bool timerGoing = false;
-	//int concCounter = 0;
+
 	while(mem[3] < saladTotal) { // Check for busyness
-		if((mem[7] + mem[8] + mem[9] > 1) && timerGoing == false) { // Measure concurrent time periods - aka when at least two saladmakers are busy
-			//concCounter++;
-			//sleep(1); // To avoid mass increments
-			time_t t = time(0);
-			tm tm = *localtime(&t);
-			fout << put_time(&tm, "%T") << " - "; // Record start time of concurrent period
-			timerGoing = true; // So that we know we have a running timer
-			sleep(1);
+		if((mem[7] + mem[8] + mem[9] > 1)) { // Measure concurrent time periods - aka when at least two saladmakers are busy
+			if(timerGoing == false) { // If the timer is not running already, start it
+				time_t t = time(0);
+				tm tm = *localtime(&t);
+				fout << put_time(&tm, "%T") << " - "; // Record start time of concurrent period
+				timerGoing = true; // So that we know we have a running timer				
+			}
+			sleep(1); // Check if it's still concurrent after a second to avoid spamming of the log file
 		}
 		else {
 			if(timerGoing == true) { // Record end time of concurrent period
 				time_t t = time(0);
 				tm tm = *localtime(&t);
 				fout << put_time(&tm, "%T") << "\n";
-				timerGoing = false;		
+				timerGoing = false;
 			}
 		}
 	}
 
-	fout.close();
+	if(timerGoing == true) { // In case the work finished while in concurrent execution and the timer never got stopped - this closes the final period
+		time_t t = time(0);
+		tm tm = *localtime(&t);
+		fout << put_time(&tm, "%T") << "\n";
+		fout.close();
+		fout.open("cheflog.txt", ios::app); // This makes it so that the log files are updated on each iteration; it helps with debugging if anyone gets stuck
+		timerGoing = false;
+	}
 
-	//cout << "Concurrent execution times: " << concCounter << endl;
+	fout.close();
 
 	int err = shmdt(mem); // Detach from the segment
 	if (err == -1) {

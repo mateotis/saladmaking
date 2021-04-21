@@ -32,6 +32,7 @@ int main (int argc, char* args[]) {
 
 	sem_t *sem = sem_open(semName.c_str(), 0);
 	sem_t *shmSem = sem_open("/shmSem", 0);
+	sem_t *outSem = sem_open("/outSem", 0);
 
 	int *mem;
 	void* tempMem = (int*)shmat(shmid, NULL, 0); // Pointer magic! Casting the shared memory pointer to void, to then cast it back to int resolves some nasty issues
@@ -43,10 +44,9 @@ int main (int argc, char* args[]) {
 		mem = reinterpret_cast<int*>(tempMem); // Now we have a proper int shared memory pointer 
 	}
 
-	string outFile = "sm" + smNumStr + "log.txt";
-	remove(outFile.c_str()); // Because of course it only takes a char array
+	remove("saladlog.txt"); // Delete file before each iteration to clear it
 	ofstream fout;
-	fout.open(outFile, ios::app); // Opening file in append mode
+	fout.open("saladlog.txt", ios::app); // Opening file in append mode
 
 	int workTimeTotal = 0; // A variable to store the total time the saladmaker spent working
 	int waitTimeTotal = 0; // Ditto, for time spent waiting on the semaphore
@@ -59,8 +59,10 @@ int main (int argc, char* args[]) {
 
 		time_t t = time(0);
 		tm tm = *localtime(&t);
+		sem_wait(outSem);
 		fout << put_time(&tm, "%T") << " [SM #" << smNum << "] Waiting for ingredients...\n";
 		cout << "SM #" << smNum << " going to sleep..." << endl;
+		sem_post(outSem);
 
 		auto waitTimeStart = chrono::system_clock::now(); // Start tracking the waiting time
 
@@ -72,8 +74,10 @@ int main (int argc, char* args[]) {
 
 		t = time(0);
 		tm = *localtime(&t);
+		sem_wait(outSem);
 		fout << put_time(&tm, "%T") << " [SM #" << smNum << "] Awake and ready to work!\n";
 		cout << "SM #" << smNumStr << " is awake!" << endl;
+		sem_post(outSem);
 
 		if(mem[3] == saladTotal) { // Need an extra finish check because otherwise some of the saladmakers might go through their loop one more time than needed
 			break; // If we're done, you can go home, no need to try to weigh/calculate anything else!
@@ -121,7 +125,9 @@ int main (int argc, char* args[]) {
 
 		t = time(0);
 		tm = *localtime(&t);
+		sem_wait(outSem);
 		fout << put_time(&tm, "%T") << " [SM #" << smNum << "] Taken ingredients from chef, now measuring...\n";
+		sem_post(outSem);
 
 		// Measure the other two ingredients that we got from the chef
 		if(smNum == 0) {
@@ -130,7 +136,9 @@ int main (int argc, char* args[]) {
 			if(currentPepperWeight < 50 || currentTomatoWeight < 80) {
 				t = time(0);
 				tm = *localtime(&t);
+				sem_wait(outSem);
 				fout << put_time(&tm, "%T") << " [SM #" << smNum << "] The ingredients don't reach the required weight! Need to wait another round\n";
+				sem_post(outSem);
 				sem_wait(shmSem);
 				mem[smNum + 7] = 0; // Set SM to available
 				sem_post(shmSem);
@@ -147,7 +155,9 @@ int main (int argc, char* args[]) {
 			if(currentOnionWeight < 30 || currentTomatoWeight < 80) {
 				t = time(0);
 				tm = *localtime(&t);
+				sem_wait(outSem);
 				fout << put_time(&tm, "%T") << " [SM #" << smNum << "] The ingredients don't reach the required weight! Need to wait another round\n";
+				sem_post(outSem);
 				sem_wait(shmSem);
 				mem[smNum + 7] = 0; // Set SM to available
 				sem_post(shmSem);
@@ -164,7 +174,9 @@ int main (int argc, char* args[]) {
 			if(currentPepperWeight < 50 || currentOnionWeight < 30) {
 				t = time(0);
 				tm = *localtime(&t);
+				sem_wait(outSem);
 				fout << put_time(&tm, "%T") << " [SM #" << smNum << "] The ingredients don't reach the required weight! Need to wait another round\n";
+				sem_post(outSem);
 				sem_wait(shmSem);
 				mem[smNum + 7] = 0; // Set SM to available
 				sem_post(shmSem);
@@ -178,7 +190,9 @@ int main (int argc, char* args[]) {
 
 		t = time(0);
 		tm = *localtime(&t);
+		sem_wait(outSem);
 		fout << put_time(&tm, "%T") << " [SM #" << smNum << "] Gathered this much of each ingredient: " << currentPepperWeight << "g pepper, " << currentOnionWeight << "g onion, " << currentTomatoWeight << "g tomato" << "\n";
+		sem_post(outSem);
 
 		cout << "SM #" << smNum << " has this much of each ingredient: " << currentPepperWeight << " pepper, " << currentOnionWeight << " onion, " << currentTomatoWeight << " tomato" << endl;
 
@@ -189,7 +203,9 @@ int main (int argc, char* args[]) {
 
 		t = time(0);
 		tm = *localtime(&t);
+		sem_wait(outSem);
 		fout << put_time(&tm, "%T") << " [SM #" << smNum << "] Chopping up ingredients for " << to_string(actualSMTime) << "\n";
+		sem_post(outSem);
 
 		cout << "SM #" << smNum << " working for: " << actualSMTime << endl;
 		sleep(actualSMTime); // I know this looks like the saladmakers are sleeping on the job, but trust me, they're actually hard at work!
@@ -209,7 +225,9 @@ int main (int argc, char* args[]) {
 
 			t = time(0);
 			tm = *localtime(&t);
+			sem_wait(outSem);
 			fout << put_time(&tm, "%T") << " [SM #" << smNum << "] Salad #" << mem[smNum + 4] << " finished!\n";
+			sem_post(outSem);
 
 			cout << "SM #" << smNum << " made this many salads: " << mem[smNum + 4] << endl;
 			cout << "Current value of mem[3]: " << mem[3] << endl;
@@ -228,7 +246,7 @@ int main (int argc, char* args[]) {
 		workTimeTotal += workTime.count();
 
 		fout.close();
-		fout.open(outFile, ios::app); // This makes it so that the log files are updated on each iteration; it helps with debugging if anyone gets stuck
+		fout.open("saladlog.txt", ios::app); // This makes it so that the log files are updated on each iteration; it helps with debugging if anyone gets stuck
 
 	}
 
@@ -237,11 +255,14 @@ int main (int argc, char* args[]) {
 	sem_wait(shmSem);
 	mem[19 + 2*smNum] = workTimeTotal; // Update final counters - this way, we only need one pass at the shared memory
 	mem[20 + 2*smNum] = waitTimeTotal;
+	mem[smNum + 7] = 0; // And JUST IN CASE the busy flag still didn't get reset (has happened before), reset it for one final time after we're all done
 	sem_post(shmSem);
 
 	time_t t = time(0);
 	tm tm = *localtime(&t);
-	fout << put_time(&tm, "%T") << " [SM #" << smNum << "] Cleaning up the kitchen\n";	
+	sem_wait(outSem);
+	fout << put_time(&tm, "%T") << " [SM #" << smNum << "] Cleaning up the kitchen\n";
+	sem_post(outSem);
 
 	fout.close();
 	
