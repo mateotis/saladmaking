@@ -88,33 +88,12 @@ int main(int argc, char* args[]) {
 		mem = reinterpret_cast<int*>(tempMem); // Now we have a proper int shared memory pointer 
 	}
 
+	for(int i = 0; i < SHMVARNUM; i++) { // Initialise all values in shared memory to 0
+		mem[i] = 0;
+	}
 
 	// Initialising all variables in shared memory - could easily make this into a for loop, but it's useful to have a quick reference of what each variable is used for
-	mem[0] = 0; // Number of onions available
-	mem[1] = 0; // Number of peppers available
-	mem[2] = 0; // Number of tomatoes available
-	mem[3] = 0; // The current number of salads
-	mem[4] = 0; // Salads produced by SM #0
-	mem[5] = 0; // Salads produced by SM #1
-	mem[6] = 0; // Salads produced by SM #2
-	mem[7] = 0; // SM #0 idle (0) or busy (1)
-	mem[8] = 0; // SM #1 idle (0) or busy (1)
-	mem[9] = 0; // SM #2 idle (0) or busy (1)
-	mem[10] = 0; // Onion weight for SM #0
-	mem[11] = 0; // Pepper weight for SM #0
-	mem[12] = 0; // Tomato weight for SM #0
-	mem[13] = 0; // Onion weight for SM #1
-	mem[14] = 0; // Pepper weight for SM #1
-	mem[15] = 0; // Tomato weight for SM #1
-	mem[16] = 0; // Onion weight for SM #2
-	mem[17] = 0; // Pepper weight for SM #2
-	mem[18] = 0; // Tomato weight for SM #2
-	mem[19] = 0; // Total work time for SM #0
-	mem[20] = 0; // Total wait time for SM #0
-	mem[21] = 0; // Total work time for SM #1
-	mem[22] = 0; // Total wait time for SM #1
-	mem[23] = 0; // Total work time for SM #2
-	mem[24] = 0; // Total wait time for SM #2
+
 
 	remove("saladlog.txt"); // Delete file to clear it out before each run
 	ofstream fout;
@@ -179,6 +158,7 @@ int main(int argc, char* args[]) {
 	}
 
 	// TO DO: rewrite while loop to not rely on accessing shared memory?
+	srand(time(0));
 	while(mem[3] < saladTotal) {
 		// Before each serving of ingredients, the chef rests for a randomly determined time based on user input
 
@@ -186,15 +166,14 @@ int main(int argc, char* args[]) {
 			break;
 		}		
 
-		srand(time(0));
 		double chefTimeMin = 0.5*double(chefTime); // As specified in the requirements
 		double f = (double)rand() / RAND_MAX;
 		double actualChefTime = chefTimeMin + f * (double(chefTime) - chefTimeMin);
 
 		// It's a little convoluted, but this is the only way I found to make a time format into an outputtable string (from the C++ reference)
+		sem_wait(outSem);
 		time_t t = time(0);
 		tm tm = *localtime(&t); // "tm" is a time struct which contains all manners of time data
-		sem_wait(outSem);
 		fout << put_time(&tm, "%T") << " [CHEF] Resting for " << actualChefTime << "\n"; // %T is the shorthand for the classic hour:minute:second format
 		sem_post(outSem);
 
@@ -219,9 +198,9 @@ int main(int argc, char* args[]) {
 		}
 		sem_post(shmSem);
 
+		sem_wait(outSem);
 		t = time(0);
 		tm = *localtime(&t);
-		sem_wait(outSem);
 		fout << put_time(&tm, "%T") << " [CHEF] Picked up ingredients for SM #" << choice << "\n";
 		cout << "Chef selected SM #" << choice << endl;
 		sem_post(outSem);
@@ -230,9 +209,9 @@ int main(int argc, char* args[]) {
 			sleep(0.1);
 		}
 
+		sem_wait(outSem);
 		t = time(0);
 		tm = *localtime(&t);
-		sem_wait(outSem);
 		fout << put_time(&tm, "%T") << " [CHEF] Telling SM #" << choice << " to take its ingredients\n";
 		cout << "Waking up SM #" << choice << endl;
 		sem_post(outSem);
@@ -242,9 +221,16 @@ int main(int argc, char* args[]) {
 		fout.open("saladlog.txt", ios::app); // This makes it so that the log files are updated on each iteration; it helps with debugging if anyone gets stuck
 	}
 
+	// Sometimes, the chef leaves one final round of ingredients on the table which go unused - to avoid food waste, we remove those ingredients (and presumably store them for the next iteration!)
+	sem_wait(shmSem);
+	mem[0] = 0;
+	mem[1] = 0;
+	mem[2] = 0;
+	sem_post(shmSem);
+
+	sem_wait(outSem);
 	time_t t = time(0);
 	tm tm = *localtime(&t);
-	sem_wait(outSem);
 	fout << put_time(&tm, "%T") << " [CHEF] " << saladTotal << " salads finished! Asking saladmakers to help clean up the kitchen...\n";
 	sem_post(outSem);
 
@@ -256,12 +242,54 @@ int main(int argc, char* args[]) {
 	int status = 0;
 	while ((pidChild = wait(&status)) != -1) {} // Wait for all the children to finish
 
-	cout << "Final status: " << endl;
-	for(int i = 0; i < SHMVARNUM; i++) {
-		cout << "mem[" << i << "]: " << mem[i] << endl;
-	}
+	// Report final results
+	cout << "\nFINAL RESULTS" << endl;
+	cout << "Number of onions available: " << mem[0] << endl;
+	cout << "Number of peppers available: " << mem[1] << endl;
+	cout << "Number of tomatoes available: " << mem[2] << endl;
+	cout << "The final number of salads: " << mem[3] << endl;
+	cout << "Salads produced by SM #0: " << mem[4] << endl;
+	cout << "Salads produced by SM #1: " << mem[5] << endl;
+	cout << "Salads produced by SM #2: " << mem[6] << endl;
+	cout << "SM #0 idle (0) or busy (1): " << mem[7] << endl;
+	cout << "SM #1 idle (0) or busy (1): " << mem[8] << endl;
+	cout << "SM #2 idle (0) or busy (1): " << mem[9] << endl;
+	cout << "Onion weight for SM #0: " << mem[10] << endl;
+	cout << "Pepper weight for SM #0: " << mem[11] << endl;
+	cout << "Tomato weight for SM #0: " << mem[12] << endl;
+	cout << "Onion weight for SM #1: " << mem[13] << endl;
+	cout << "Pepper weight for SM #1: " << mem[14] << endl;
+	cout << "Tomato weight for SM #1: " << mem[15] << endl;
+	cout << "Onion weight for SM #2: " << mem[16] << endl;
+	cout << "Pepper weight for SM #2: " << mem[17] << endl;
+	cout << "Tomato weight for SM #2: " << mem[18] << endl;
+	cout << "Total work time for SM #0: " << mem[19] << endl;
+	cout << "Total wait time for SM #0: " << mem[20] << endl;
+	cout << "Total work time for SM #1: " << mem[21] << endl;
+	cout << "Total wait time for SM #1: " << mem[22] << endl;
+	cout << "Total work time for SM #2: " << mem[23] << endl;
+	cout << "Total wait time for SM #2: " << mem[24] << endl;
+	cout << "\n";
 
 	fout.close();
+
+	// Display the work of the concurrent logger by reading from the log it created
+	ifstream fin;
+	fin.open("concurrentlog.txt");
+	if(!fin) { // Error check, though it's not the end of the world - if the logger messed up somehow, just don't bother with the file
+		cerr << "Error: concurrent log file could not be opened." << endl;
+	}
+	else {
+		string line;
+
+		cout << "Concurrent periods of execution" << endl;
+		while(getline(fin, line)) {
+			cout << line << endl;
+		}
+		cout << "\n";
+
+		fin.close();
+	}
 
 	sem_close(sem0);
 	sem_unlink("/sem0");

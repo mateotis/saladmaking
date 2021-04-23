@@ -1,75 +1,107 @@
-22:18:52 [CHEF] Resting for 1.81732
-22:18:53 [CHEF] Picked up ingredients for SM #1
-22:18:53 [CHEF] Telling SM #1 to take its ingredients
-22:18:53 [CHEF] Resting for 1.17442
-22:18:54 [CHEF] Picked up ingredients for SM #2
-22:18:54 [CHEF] Telling SM #2 to take its ingredients
-22:18:54 [CHEF] Resting for 1.53402
-22:18:55 [CHEF] Picked up ingredients for SM #1
-22:18:57 [CHEF] Telling SM #1 to take its ingredients
-22:18:57 [CHEF] Resting for 1.10762
-22:18:58 [CHEF] Picked up ingredients for SM #0
-22:18:58 [CHEF] Telling SM #0 to take its ingredients
-22:18:58 [CHEF] Resting for 1.96769
-22:18:59 [CHEF] Picked up ingredients for SM #1
-22:18:59 [CHEF] Telling SM #1 to take its ingredients
-22:18:59 [CHEF] Resting for 1.32442
-22:19:00 [CHEF] Picked up ingredients for SM #0
-22:19:00 [CHEF] Telling SM #0 to take its ingredients
-22:18:57 [SM #1] Waiting for ingredients...
-22:18:57 [SM #1] Awake and ready to work!
-22:18:57 [SM #1] Taken ingredients from chef, now measuring...
-22:18:57 [SM #1] The ingredients don't reach the required weight! Need to wait another round
-22:18:57 [SM #1] Waiting for ingredients...
-22:18:59 [SM #1] Awake and ready to work!
-22:18:59 [SM #1] Taken ingredients from chef, now measuring...
-22:18:59 [SM #1] Gathered this much of each ingredient: 84g pepper, 58g onion, 142g tomato
-22:18:59 [SM #1] Chopping up ingredients for 4.324420
-22:19:03 [SM #1] Salad #2 finished!
-22:19:00 [CHEF] Resting for 1.68518
-22:19:01 [CHEF] Picked up ingredients for SM #1
-22:19:03 [CHEF] Telling SM #1 to take its ingredients
-22:19:03 [CHEF] Resting for 1.26076
-22:19:04 [CHEF] Picked up ingredients for SM #0
-22:19:04 [CHEF] Telling SM #0 to take its ingredients
-22:19:04 [CHEF] Resting for 1.1176
-22:19:05 [CHEF] Picked up ingredients for SM #0
-22:19:05 [CHEF] Telling SM #0 to take its ingredients
-22:19:05 [CHEF] Resting for 1.97597
-22:19:06 [CHEF] Picked up ingredients for SM #1
-22:19:06 [CHEF] Telling SM #1 to take its ingredients
-22:19:04 [SM #0] Waiting for ingredients...
-22:19:04 [SM #0] Awake and ready to work!
-22:19:04 [SM #0] Taken ingredients from chef, now measuring...
-22:19:04 [SM #0] The ingredients don't reach the required weight! Need to wait another round
-22:19:04 [SM #0] Waiting for ingredients...
-22:19:05 [SM #0] Awake and ready to work!
-22:19:05 [SM #0] Taken ingredients from chef, now measuring...
-22:19:05 [SM #0] Gathered this much of each ingredient: 84g pepper, 58g onion, 164g tomato
-22:19:05 [SM #0] Chopping up ingredients for 4.975972
-22:19:09 [SM #0] Salad #2 finished!
-22:19:03 [SM #1] Waiting for ingredients...
-22:19:03 [SM #1] Awake and ready to work!
-22:19:03 [SM #1] Taken ingredients from chef, now measuring...
-22:19:03 [SM #1] The ingredients don't reach the required weight! Need to wait another round
-22:19:03 [SM #1] Waiting for ingredients...
-22:19:06 [SM #1] Awake and ready to work!
-22:19:06 [SM #1] Taken ingredients from chef, now measuring...
-22:19:06 [SM #1] Gathered this much of each ingredient: 54g pepper, 60g onion, 151g tomato
-22:19:06 [SM #1] Chopping up ingredients for 4.333995
-22:19:10 [SM #1] Salad #3 finished!
-22:19:06 [CHEF] Resting for 1.33399
-22:19:07 [CHEF] Picked up ingredients for SM #1
-22:19:10 [CHEF] Telling SM #1 to take its ingredients
-22:19:09 [SM #0] Waiting for ingredients...
-22:19:10 [SM #0] Awake and ready to work!
-22:19:10 [SM #0] Cleaning up the kitchen
-22:18:51 [SM #2] Waiting for ingredients...
-22:18:54 [SM #2] Awake and ready to work!
-22:18:54 [SM #2] Taken ingredients from chef, now measuring...
-22:18:54 [SM #2] The ingredients don't reach the required weight! Need to wait another round
-22:18:54 [SM #2] Waiting for ingredients...
-22:19:10 [SM #2] Awake and ready to work!
-22:19:10 [SM #2] Cleaning up the kitchen
-22:19:10 [SM #1] Cleaning up the kitchen
-22:19:10 [CHEF] 5 salads finished! Asking saladmakers to help clean up the kitchen...
+16:18:23 [CHEF] Resting for 1.92474
+16:18:24 [CHEF] Picked up ingredients for SM #2
+16:18:24 [CHEF] Telling SM #2 to take its ingredients
+16:18:24 [CHEF] Resting for 1.31436
+16:18:25 [CHEF] Picked up ingredients for SM #1
+16:18:25 [CHEF] Telling SM #1 to take its ingredients
+16:18:25 [CHEF] Resting for 1.53469
+16:18:26 [CHEF] Picked up ingredients for SM #1
+16:18:26 [CHEF] Telling SM #1 to take its ingredients
+16:18:26 [CHEF] Resting for 1.76776
+16:18:27 [CHEF] Picked up ingredients for SM #0
+16:18:27 [CHEF] Telling SM #0 to take its ingredients
+16:18:27 [CHEF] Resting for 1.71075
+16:18:28 [CHEF] Picked up ingredients for SM #1
+16:18:28 [CHEF] Telling SM #1 to take its ingredients
+16:18:28 [CHEF] Resting for 1.21384
+16:18:29 [CHEF] Picked up ingredients for SM #0
+16:18:29 [CHEF] Telling SM #0 to take its ingredients
+16:18:29 [CHEF] Resting for 1.83735
+16:18:30 [CHEF] Picked up ingredients for SM #2
+16:18:30 [CHEF] Telling SM #2 to take its ingredients
+16:18:22 [SM #2] Waiting for ingredients...
+16:18:24 [SM #2] Awake and ready to work!
+16:18:24 [SM #2] Taken ingredients from chef, now measuring...
+16:18:24 [SM #2] The ingredients don't reach the required weight! Need to wait another round
+16:18:24 [SM #2] Waiting for ingredients...
+16:18:30 [SM #2] Awake and ready to work!
+16:18:30 [SM #2] Taken ingredients from chef, now measuring...
+16:18:30 [SM #2] Gathered this much of each ingredient: 92g pepper, 58g onion, 137g tomato
+16:18:30 [SM #2] Chopping up ingredients for 2.860653
+16:18:32 [SM #2] Salad #1 finished!
+16:18:30 [CHEF] Resting for 1.47853
+16:18:31 [CHEF] Picked up ingredients for SM #2
+16:18:32 [CHEF] Telling SM #2 to take its ingredients
+16:18:32 [CHEF] Resting for 1.93618
+16:18:33 [CHEF] Picked up ingredients for SM #0
+16:18:33 [CHEF] Telling SM #0 to take its ingredients
+16:18:32 [SM #2] Waiting for ingredients...
+16:18:32 [SM #2] Awake and ready to work!
+16:18:32 [SM #2] Taken ingredients from chef, now measuring...
+16:18:32 [SM #2] Gathered this much of each ingredient: 58g pepper, 34g onion, 136g tomato
+16:18:32 [SM #2] Chopping up ingredients for 2.824141
+16:18:34 [SM #2] Salad #2 finished!
+16:18:33 [CHEF] Resting for 1.79416
+16:18:34 [CHEF] Picked up ingredients for SM #2
+16:18:34 [CHEF] Telling SM #2 to take its ingredients
+16:18:29 [SM #0] Waiting for ingredients...
+16:18:29 [SM #0] Awake and ready to work!
+16:18:29 [SM #0] Taken ingredients from chef, now measuring...
+16:18:29 [SM #0] The ingredients don't reach the required weight! Need to wait another round
+16:18:29 [SM #0] Waiting for ingredients...
+16:18:33 [SM #0] Awake and ready to work!
+16:18:33 [SM #0] Taken ingredients from chef, now measuring...
+16:18:33 [SM #0] Gathered this much of each ingredient: 104g pepper, 34g onion, 147g tomato
+16:18:33 [SM #0] Chopping up ingredients for 2.902407
+16:18:35 [SM #0] Salad #2 finished!
+16:18:34 [CHEF] Resting for 1.09114
+16:18:35 [CHEF] Picked up ingredients for SM #2
+16:18:35 [CHEF] Telling SM #2 to take its ingredients
+16:18:34 [SM #2] Waiting for ingredients...
+16:18:34 [SM #2] Awake and ready to work!
+16:18:34 [SM #2] Taken ingredients from chef, now measuring...
+16:18:34 [SM #2] The ingredients don't reach the required weight! Need to wait another round
+16:18:34 [SM #2] Waiting for ingredients...
+16:18:35 [SM #2] Awake and ready to work!
+16:18:35 [SM #2] Taken ingredients from chef, now measuring...
+16:18:35 [SM #2] Gathered this much of each ingredient: 101g pepper, 53g onion, 139g tomato
+16:18:35 [SM #2] Chopping up ingredients for 2.721188
+16:18:37 [SM #2] Salad #3 finished!
+16:18:35 [CHEF] Resting for 1.58341
+16:18:36 [CHEF] Picked up ingredients for SM #2
+16:18:37 [CHEF] Telling SM #2 to take its ingredients
+16:18:37 [CHEF] Resting for 1.14618
+16:18:38 [CHEF] Picked up ingredients for SM #1
+16:18:38 [CHEF] Telling SM #1 to take its ingredients
+16:18:38 [CHEF] Resting for 1.26447
+16:18:39 [CHEF] Picked up ingredients for SM #0
+16:18:39 [CHEF] Telling SM #0 to take its ingredients
+16:18:28 [SM #1] Waiting for ingredients...
+16:18:28 [SM #1] Awake and ready to work!
+16:18:28 [SM #1] Taken ingredients from chef, now measuring...
+16:18:28 [SM #1] The ingredients don't reach the required weight! Need to wait another round
+16:18:28 [SM #1] Waiting for ingredients...
+16:18:38 [SM #1] Awake and ready to work!
+16:18:38 [SM #1] Taken ingredients from chef, now measuring...
+16:18:38 [SM #1] Gathered this much of each ingredient: 94g pepper, 60g onion, 160g tomato
+16:18:38 [SM #1] Chopping up ingredients for 2.822926
+16:18:40 [SM #1] Salad #2 finished!
+16:18:40 [SM #1] Cleaning up the kitchen
+16:18:39 [CHEF] Resting for 1.59918
+16:18:40 [CHEF] Picked up ingredients for SM #2
+16:18:40 [CHEF] Telling SM #2 to take its ingredients
+16:18:37 [SM #2] Waiting for ingredients...
+16:18:37 [SM #2] Awake and ready to work!
+16:18:37 [SM #2] Taken ingredients from chef, now measuring...
+16:18:37 [SM #2] The ingredients don't reach the required weight! Need to wait another round
+16:18:37 [SM #2] Waiting for ingredients...
+16:18:40 [SM #2] Awake and ready to work!
+16:18:40 [SM #2] Cleaning up the kitchen
+16:18:35 [SM #0] Waiting for ingredients...
+16:18:39 [SM #0] Awake and ready to work!
+16:18:39 [SM #0] Taken ingredients from chef, now measuring...
+16:18:39 [SM #0] The ingredients don't reach the required weight! Need to wait another round
+16:18:39 [SM #0] Waiting for ingredients...
+16:18:40 [SM #0] Awake and ready to work!
+16:18:40 [SM #0] Cleaning up the kitchen
+16:18:40 [CHEF] 7 salads finished! Asking saladmakers to help clean up the kitchen...

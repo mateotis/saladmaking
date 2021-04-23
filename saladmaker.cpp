@@ -55,11 +55,12 @@ int main (int argc, char* args[]) {
 	int currentPepperWeight = 0;
 	int currentTomatoWeight = 0;
 
+	srand(time(0));
 	while(mem[3] < saladTotal) {
 
+		sem_wait(outSem);
 		time_t t = time(0);
 		tm tm = *localtime(&t);
-		sem_wait(outSem);
 		fout << put_time(&tm, "%T") << " [SM #" << smNum << "] Waiting for ingredients...\n";
 		cout << "SM #" << smNum << " going to sleep..." << endl;
 		sem_post(outSem);
@@ -72,9 +73,9 @@ int main (int argc, char* args[]) {
 		auto waitTime = chrono::duration_cast<chrono::seconds>(waitTimeEnd - waitTimeStart); // Have to use duration_cast as it usually gives time in float formats
 		waitTimeTotal += waitTime.count();
 
+		sem_wait(outSem);
 		t = time(0);
 		tm = *localtime(&t);
-		sem_wait(outSem);
 		fout << put_time(&tm, "%T") << " [SM #" << smNum << "] Awake and ready to work!\n";
 		cout << "SM #" << smNumStr << " is awake!" << endl;
 		sem_post(outSem);
@@ -86,7 +87,6 @@ int main (int argc, char* args[]) {
 		auto workTimeStart = chrono::system_clock::now();
 
 		// Weigh each SM's always-available ingredient first
-		srand(time(0));
 		if(smNum == 0) {
 			currentOnionWeight = rand() % 12 + 24; // Simple formula I came up with on the fly to get an int in the specified range: rand() % (1.2*w - 0.8*w) + 0.8*w (writing them in actual numbers as C++ can't compile with doubles in the equation, even if they come out to an int)
 			if(currentOnionWeight < 30) { // If there is not enough, pick another one, which will be enough for sure
@@ -123,9 +123,9 @@ int main (int argc, char* args[]) {
 		
 		sem_post(shmSem);
 
+		sem_wait(outSem);
 		t = time(0);
 		tm = *localtime(&t);
-		sem_wait(outSem);
 		fout << put_time(&tm, "%T") << " [SM #" << smNum << "] Taken ingredients from chef, now measuring...\n";
 		sem_post(outSem);
 
@@ -134,9 +134,9 @@ int main (int argc, char* args[]) {
 			currentPepperWeight += rand() % 20 + 40; // Important to use += instead of = to ensure that even if we have to pick an ingredient twice, we save the previous weight
 			currentTomatoWeight += rand() % 32 + 64;
 			if(currentPepperWeight < 50 || currentTomatoWeight < 80) {
+				sem_wait(outSem);
 				t = time(0);
 				tm = *localtime(&t);
-				sem_wait(outSem);
 				fout << put_time(&tm, "%T") << " [SM #" << smNum << "] The ingredients don't reach the required weight! Need to wait another round\n";
 				sem_post(outSem);
 				sem_wait(shmSem);
@@ -153,9 +153,9 @@ int main (int argc, char* args[]) {
 			currentOnionWeight += rand() % 12 + 24;
 			currentTomatoWeight += rand() % 32 + 64;
 			if(currentOnionWeight < 30 || currentTomatoWeight < 80) {
+				sem_wait(outSem);				
 				t = time(0);
 				tm = *localtime(&t);
-				sem_wait(outSem);
 				fout << put_time(&tm, "%T") << " [SM #" << smNum << "] The ingredients don't reach the required weight! Need to wait another round\n";
 				sem_post(outSem);
 				sem_wait(shmSem);
@@ -172,9 +172,9 @@ int main (int argc, char* args[]) {
 			currentOnionWeight += rand() % 12 + 24;
 			currentPepperWeight += rand() % 20 + 40;
 			if(currentPepperWeight < 50 || currentOnionWeight < 30) {
+				sem_wait(outSem);
 				t = time(0);
 				tm = *localtime(&t);
-				sem_wait(outSem);
 				fout << put_time(&tm, "%T") << " [SM #" << smNum << "] The ingredients don't reach the required weight! Need to wait another round\n";
 				sem_post(outSem);
 				sem_wait(shmSem);
@@ -188,22 +188,21 @@ int main (int argc, char* args[]) {
 			}
 		}
 
+		sem_wait(outSem);
 		t = time(0);
 		tm = *localtime(&t);
-		sem_wait(outSem);
 		fout << put_time(&tm, "%T") << " [SM #" << smNum << "] Gathered this much of each ingredient: " << currentPepperWeight << "g pepper, " << currentOnionWeight << "g onion, " << currentTomatoWeight << "g tomato" << "\n";
 		sem_post(outSem);
 
 		cout << "SM #" << smNum << " has this much of each ingredient: " << currentPepperWeight << " pepper, " << currentOnionWeight << " onion, " << currentTomatoWeight << " tomato" << endl;
 
-		srand(time(0));
 		double smTimeMin = 0.8*double(smTime); // As specified in the requirements
 		double f = (double)rand() / RAND_MAX;
 		double actualSMTime = smTimeMin + f * (double(smTime) - smTimeMin);
 
+		sem_wait(outSem);
 		t = time(0);
 		tm = *localtime(&t);
-		sem_wait(outSem);
 		fout << put_time(&tm, "%T") << " [SM #" << smNum << "] Chopping up ingredients for " << to_string(actualSMTime) << "\n";
 		sem_post(outSem);
 
@@ -223,9 +222,9 @@ int main (int argc, char* args[]) {
 			mem[11 + 3*smNum] += currentPepperWeight;
 			mem[12 + 3*smNum] += currentTomatoWeight;
 
+			sem_wait(outSem);
 			t = time(0);
 			tm = *localtime(&t);
-			sem_wait(outSem);
 			fout << put_time(&tm, "%T") << " [SM #" << smNum << "] Salad #" << mem[smNum + 4] << " finished!\n";
 			sem_post(outSem);
 
@@ -258,9 +257,9 @@ int main (int argc, char* args[]) {
 	mem[smNum + 7] = 0; // And JUST IN CASE the busy flag still didn't get reset (has happened before), reset it for one final time after we're all done
 	sem_post(shmSem);
 
+	sem_wait(outSem);
 	time_t t = time(0);
 	tm tm = *localtime(&t);
-	sem_wait(outSem);
 	fout << put_time(&tm, "%T") << " [SM #" << smNum << "] Cleaning up the kitchen\n";
 	sem_post(outSem);
 
