@@ -14,10 +14,95 @@
 #include <iomanip> // For put_time()
 #include <fstream>
 
+#include "chef.h"
+
 #define SHMSIZE 1024 // Size of the shared memory segment; should be more than enough for our purposes
 #define SHMVARNUM 25 // Number of variables I use in shared memory
 
 using namespace std;
+
+void temporalReordering(string fileName) {
+	ifstream log;
+	log.open(fileName);
+
+	int lineCount = 0;
+	string line;
+	while(getline(log, line)) { // Get number of lines in the log file
+		lineCount++;
+	}
+	log.close();
+
+	LogLine logArray[lineCount]; // Initialise an array of LogLine structs
+	int cnt = 0;
+	log.open(fileName); // Open again, this time to copy the file contents into main memory
+
+	while(getline(log, line)) {
+
+		logArray[cnt].hours = stoi(line.substr(0, 2)); // Since each line has the same general structure, we can use actual numbers to slice the line
+		logArray[cnt].mins = stoi(line.substr(3, 2));
+		logArray[cnt].secs = stoi(line.substr(6, 2));
+
+		if(line.substr(10, 1) == "C") { // This means that the entity of this log line is the chef, which is four letters (and thus has to be treated separately, because all other entities are five letters)
+			logArray[cnt].entity = "CHEF";
+		}
+		else {
+			logArray[cnt].entity = line.substr(10, 5);
+		}
+
+		size_t contentStart = line.find("]") + 2;
+		logArray[cnt].content = line.substr(contentStart);
+
+		cnt++;
+	}
+
+	int currentMinHour = 24;
+	int currentMinMin = 61; // Ha!
+	int currentMinSec = 61;
+	int currentMinLoc = -1;
+
+	string fixedArray[lineCount]; // The final, sorted array
+
+	// Behold! A three-factor selection sort that orders the temporal log in ascending order based on time (hours, minutes, seconds) - unfortunately, even this doesn't order the log perfectly, as there are often many entries in the same second which this algorithm can't differentiate between - would need to write a small AI for that capacity :)
+	for(int i = 0; i < lineCount; i++) {
+		for(int j = 0; j < lineCount; j++) {
+			if(logArray[j].hours <= currentMinHour) { // <= instead of < because values can be the same
+				if(logArray[j].mins <= currentMinMin) {
+					if(logArray[j].secs <= currentMinSec) {
+						currentMinHour = logArray[j].hours; // Update current min values
+						currentMinMin = logArray[j].mins;
+						currentMinSec = logArray[j].secs;
+						currentMinLoc = j; // Save the location of the lowest entry so we can take it out of consideration at the end
+					}
+				}
+
+			}
+		}
+
+		fixedArray[i] = to_string(currentMinHour) + ":" + to_string(currentMinMin) + ":" + to_string(currentMinSec) + " [" + logArray[currentMinLoc].entity + "] " + logArray[currentMinLoc].content; // Reconstruct the line and add it to the final string array
+
+		// Reset values, prepare for the next iteration
+		logArray[currentMinLoc].hours = 24;
+		logArray[currentMinLoc].mins = 61;
+		logArray[currentMinLoc].secs = 61;
+		currentMinHour = 24;
+		currentMinMin = 61;
+		currentMinSec = 61;
+		currentMinLoc = -1;
+	}
+
+	remove("saladlog-ordered.txt");
+	ofstream fout;
+	fout.open("saladlog-ordered.txt");
+
+	for(int i = 0; i < lineCount; i++) {
+		fout << fixedArray[i] << "\n";
+	}
+
+	fout.close();
+
+	return;
+
+}
 
 int main(int argc, char* args[]) {
 
@@ -30,6 +115,7 @@ int main(int argc, char* args[]) {
 	int chefTime = 2;
 	int smTime = 1;
 	bool resetMode = false;
+	bool timeFix = false;
 
 	// Processing user input
 	for(int i = 0; i < argc; i++) {
@@ -47,6 +133,9 @@ int main(int argc, char* args[]) {
 		}
 		else if(strcmp(args[i], "-rm") == 0) {
 			resetMode = true;
+		}
+		else if(strcmp(args[i], "-tf") == 0) {
+			timeFix = true;
 		}
 	}
 
@@ -110,16 +199,25 @@ int main(int argc, char* args[]) {
 	else if(pid == 0) { // In logger
 		string loggerName = "logger";
 		string segmentIDStr = to_string(shmid);
+		string timeFixStr = "";
+		if(timeFix == true) {
+			timeFixStr = "true";
+		}
+		else {
+			timeFixStr = "false";
+		}
 
 		char* loggerChar = new char[30];
 		char* segmentIDChar = new char[30];
 		char* saladTotalChar = new char[30];
+		char* timeFixChar = new char[30];
 
 		strcpy(loggerChar, loggerName.c_str());
 		strcpy(segmentIDChar, segmentIDStr.c_str());
 		strcpy(saladTotalChar, saladTotalStr.c_str());
+		strcpy(timeFixChar, timeFixStr.c_str());
 
-		char* arg[] = {loggerChar, segmentIDChar, saladTotalChar, NULL};
+		char* arg[] = {loggerChar, segmentIDChar, saladTotalChar, timeFixChar, NULL};
 		execv("./logger", arg);	// Start the logger!
 	}
 
@@ -289,6 +387,10 @@ int main(int argc, char* args[]) {
 		cout << "\n";
 
 		fin.close();
+	}
+
+	if(timeFix == true) { // If the user requested the log timings to be "fixed", run the algorithm
+		temporalReordering("saladlog.txt");
 	}
 
 	sem_close(sem0);

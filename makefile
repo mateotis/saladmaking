@@ -10,7 +10,7 @@ logger.o: logger.cpp
 	g++ -c logger.cpp -o logger.o
 saladmaker.o: saladmaker.cpp
 	g++ -c saladmaker.cpp -o saladmaker.o
-chef.o: chef.cpp
+chef.o: chef.cpp chef.h
 	g++ -c chef.cpp -o chef.o
 clean:
 	rm *.o chef saladmaker logger

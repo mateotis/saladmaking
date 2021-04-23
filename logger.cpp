@@ -4,6 +4,7 @@
 #include <cstdio> 
 #include <cstdlib>
 #include <iostream>
+#include <cstring> // For strcmp
 #include <string>
 #include <unistd.h>
 #include <ctime>
@@ -20,6 +21,11 @@ int main (int argc, char* args[]) {
 	int shmid = stoi(shmidStr);
 	string saladTotalStr = args[2];
 	int saladTotal = stoi(saladTotalStr);
+
+	bool timeFix = false;
+	if(strcmp(args[3], "true") == 0) {
+		timeFix = true;
+	}
 
 	int *mem;
 	void* tempMem = (int*)shmat(shmid, NULL, 0); // Pointer magic! Casting the shared memory pointer to void, to then cast it back to int resolves some nasty issues
