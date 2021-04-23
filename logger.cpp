@@ -1,16 +1,17 @@
-#include <sys/types.h>
-#include <sys/ipc.h> 
-#include <sys/shm.h>
-#include <cstdio> 
-#include <cstdlib>
-#include <iostream>
-#include <cstring> // For strcmp
-#include <string>
-#include <unistd.h>
-#include <ctime>
-#include <fstream>
-#include <iomanip>
-#include <chrono>
+#include <sys/types.h> // For the time_t and size_t type definitions
+#include <sys/ipc.h> // For the IPC_CREAT and IPC_PRIVATE mode bits
+#include <sys/shm.h> // For shared memory
+#include <cstdio> // For the remove() function
+#include <iostream> // Who doesn't include this?
+#include <string> // For argument parsing and log handling
+#include <cstring> // For strcmp()
+#include <unistd.h> // For POSIX stuff
+#include <ctime> // For the "temporal" part of "temporal log"
+#include <iomanip> // For put_time() which enables outputting times to a file
+#include <fstream> // For file I/O
+#include <chrono> // For highly accurate, C++ timekeeping
+
+#include "logger.h"
 
 using namespace std;
 

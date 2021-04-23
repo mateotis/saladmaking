@@ -1,16 +1,16 @@
-#include <sys/types.h>
-#include <sys/ipc.h> 
-#include <sys/shm.h>
-#include <semaphore.h>
-#include <cstdio> 
-#include <cstdlib>
-#include <iostream>
-#include <string>
-#include <unistd.h> // For read/write and IPC
-#include <ctime>
-#include <fstream>
-#include <iomanip>
-#include <chrono>
+#include <sys/types.h> // For the time_t and size_t type definitions
+#include <sys/ipc.h> // For the IPC_CREAT and IPC_PRIVATE mode bits
+#include <sys/shm.h> // For shared memory
+#include <semaphore.h> // For semaphores
+#include <cstdio> // For the remove() function
+#include <cstdlib> // For rand()
+#include <iostream> // Who doesn't include this?
+#include <string> // For argument parsing and log handling
+#include <unistd.h> // For POSIX stuff
+#include <ctime> // For the "temporal" part of "temporal log" - also for srand() seeding
+#include <iomanip> // For put_time() which enables outputting times to a file
+#include <fstream> // For file I/O
+#include <chrono> // For highly accurate, C++ timekeeping
 
 using namespace std;
 

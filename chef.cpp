@@ -1,20 +1,20 @@
-#include <sys/types.h>
-#include <sys/ipc.h> 
-#include <sys/shm.h>
-#include <semaphore.h>
-#include <fcntl.h>
-#include <cstdio> 
+#include <sys/types.h> // For the time_t and size_t type definitions
+#include <sys/ipc.h> // For the IPC_CREAT and IPC_PRIVATE mode bits
+#include <sys/shm.h> // For shared memory
+#include <semaphore.h> // For semaphores
+#include <fcntl.h> // For the O_CREAT flag
+#include <cstdio> // For the remove() function
 #include <cstdlib> // For rand()
-#include <iostream>
-#include <string>
-#include <cstring>
-#include <unistd.h> // For read/write and IPC
-#include <sys/wait.h> // For wait() and signals
-#include <ctime> // For the "temporal" part of "temporal log"
-#include <iomanip> // For put_time()
-#include <fstream>
+#include <iostream> // Who doesn't include this?
+#include <string> // For argument parsing and log handling
+#include <cstring> // For strcmp() and strcpy()
+#include <unistd.h> // For POSIX stuff
+#include <sys/wait.h> // For wait()
+#include <ctime> // For the "temporal" part of "temporal log" - also for srand() seeding
+#include <iomanip> // For put_time() which enables outputting times to a file
+#include <fstream> // For file I/O
 
-#include "chef.h"
+#include "logger.h"
 
 #define SHMSIZE 1024 // Size of the shared memory segment; should be more than enough for our purposes
 #define SHMVARNUM 25 // Number of variables I use in shared memory
@@ -180,9 +180,6 @@ int main(int argc, char* args[]) {
 	for(int i = 0; i < SHMVARNUM; i++) { // Initialise all values in shared memory to 0
 		mem[i] = 0;
 	}
-
-	// Initialising all variables in shared memory - could easily make this into a for loop, but it's useful to have a quick reference of what each variable is used for
-
 
 	remove("saladlog.txt"); // Delete file to clear it out before each run
 	ofstream fout;
