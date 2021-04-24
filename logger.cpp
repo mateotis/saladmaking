@@ -5,7 +5,6 @@
 #include <iostream> // Who doesn't include this?
 #include <string> // For argument parsing and log handling
 #include <cstring> // For strcmp()
-#include <unistd.h> // For POSIX stuff
 #include <ctime> // For the "temporal" part of "temporal log"
 #include <iomanip> // For put_time() which enables outputting times to a file
 #include <fstream> // For file I/O

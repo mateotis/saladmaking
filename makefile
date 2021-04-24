@@ -13,4 +13,4 @@ saladmaker.o: saladmaker.cpp
 chef.o: chef.cpp chef.h
 	g++ -c chef.cpp -o chef.o
 clean:
-	rm *.o chef saladmaker logger
+	rm *.o *.txt chef saladmaker logger

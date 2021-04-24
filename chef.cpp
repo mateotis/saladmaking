@@ -8,7 +8,7 @@
 #include <iostream> // Who doesn't include this?
 #include <string> // For argument parsing and log handling
 #include <cstring> // For strcmp() and strcpy()
-#include <unistd.h> // For POSIX stuff
+#include <unistd.h> // For usleep()
 #include <sys/wait.h> // For wait()
 #include <ctime> // For the "temporal" part of "temporal log" - also for srand() seeding
 #include <iomanip> // For put_time() which enables outputting times to a file
@@ -223,7 +223,6 @@ int main(int argc, char* args[]) {
 	// Forking saladmaker children
 	int count = 0;
 	for(int childNum = 0; childNum < 3; childNum++) {
-		sleep(0.1); // Stagger the kids a little to ensure a smooth start
 		pid_t pid;
 		pid = fork();
 
@@ -274,7 +273,7 @@ int main(int argc, char* args[]) {
 		sem_post(outSem);
 
 		cout << "[CHEF] Resting for " << actualChefTime << endl;
-		sleep(actualChefTime);
+		usleep(actualChefTime*1000000); // As it turns out, sleep() only takes integer arguments - for precision, we use usleep() which takes microseconds (which we get by multiplying our second value by one million)
 
 		int choice = rand() % 3; // Simulating the chef picking two ingredients at random (three possible combinations)
 
@@ -302,7 +301,7 @@ int main(int argc, char* args[]) {
 		sem_post(outSem);
 
 		while(mem[choice + 7] == 1) { // If the selected SM is busy, wait until it becomes available (busy waiting is a simpler and less error-prone solution here than trying to get into any SM's semaphore)
-			sleep(0.1);
+			usleep(100000); // Equivalent to 0.1 secs
 		}
 
 		cout << "[CHEF] Telling SM #" << choice << " to take its ingredients" << endl;
@@ -381,9 +380,14 @@ int main(int argc, char* args[]) {
 	else {
 		string line;
 
+		int concCnt = 0;
 		cout << "Concurrent periods of execution" << endl;
 		while(getline(fin, line)) {
 			cout << line << endl;
+			concCnt++;
+		}
+		if(concCnt == 0) { // In case our file is empty, make sure the user knows it wasn't a screw-up, there just weren't any concurrent periods (can happen very easily with fast SM and slow chef times)
+			cout << "No concurrent periods recorded." << endl;
 		}
 		cout << "\n";
 

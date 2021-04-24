@@ -6,7 +6,7 @@
 #include <cstdlib> // For rand()
 #include <iostream> // Who doesn't include this?
 #include <string> // For argument parsing and log handling
-#include <unistd.h> // For POSIX stuff
+#include <unistd.h> // For usleep()
 #include <ctime> // For the "temporal" part of "temporal log" - also for srand() seeding
 #include <iomanip> // For put_time() which enables outputting times to a file
 #include <fstream> // For file I/O
@@ -69,8 +69,8 @@ int main (int argc, char* args[]) {
 		sem_wait(sem); // Sleep peacefully until the chef wakes us up with ingredients
 
 		auto waitTimeEnd = chrono::system_clock::now(); // If we get here, that means we've been awoken, so no more waiting!
-		auto waitTime = chrono::duration_cast<chrono::seconds>(waitTimeEnd - waitTimeStart); // Have to use duration_cast as duration usually gives time in float formats
-		waitTimeTotal += waitTime.count(); // Recording time in integers - can lose time if wait/work durations are less than a second each, but that's an acceptable tradeoff for the simplicity we get from using ints
+		auto waitTime = chrono::duration_cast<chrono::microseconds>(waitTimeEnd - waitTimeStart); // Have to use duration_cast as duration usually gives time in float formats
+		waitTimeTotal += waitTime.count(); // Recording time in integers - since we're tracking it with microsecond precision, we don't lose any time even when the times are under one second!
 
 		sem_wait(outSem);
 		t = time(0);
@@ -144,7 +144,7 @@ int main (int argc, char* args[]) {
 				cout << "[SM #" << smNum << "] The ingredients don't reach the required weight! Need to wait another round" << endl;
 
 				auto workTimeEnd = chrono::system_clock::now(); // Making sure we catch all cases, even when the worker goes back to waiting - otherwise, we would lose the time it spent weighing for that round, no matter how insignificant it might be
-				auto workTime = chrono::duration_cast<chrono::seconds>(workTimeEnd - workTimeStart);
+				auto workTime = chrono::duration_cast<chrono::microseconds>(workTimeEnd - workTimeStart);
 				workTimeTotal += workTime.count();
 				continue;
 			}
@@ -164,7 +164,7 @@ int main (int argc, char* args[]) {
 				cout << "[SM #" << smNum << "] The ingredients don't reach the required weight! Need to wait another round" << endl;
 
 				auto workTimeEnd = chrono::system_clock::now(); // Making sure we catch all cases, even when the worker goes back to waiting - otherwise, we would lose the time it spent weighing for that round, no matter how insignificant it might be
-				auto workTime = chrono::duration_cast<chrono::seconds>(workTimeEnd - workTimeStart);
+				auto workTime = chrono::duration_cast<chrono::microseconds>(workTimeEnd - workTimeStart);
 				workTimeTotal += workTime.count();				
 				continue;
 			}
@@ -184,7 +184,7 @@ int main (int argc, char* args[]) {
 				cout << "[SM #" << smNum << "] The ingredients don't reach the required weight! Need to wait another round" << endl;
 
 				auto workTimeEnd = chrono::system_clock::now(); // Making sure we catch all cases, even when the worker goes back to waiting - otherwise, we would lose the time it spent weighing for that round, no matter how insignificant it might be
-				auto workTime = chrono::duration_cast<chrono::seconds>(workTimeEnd - workTimeStart);
+				auto workTime = chrono::duration_cast<chrono::microseconds>(workTimeEnd - workTimeStart);
 				workTimeTotal += workTime.count();
 				continue;
 			}
@@ -208,7 +208,7 @@ int main (int argc, char* args[]) {
 		sem_post(outSem);
 
 		cout << "[SM #" << smNum << "] Chopping up ingredients for " << to_string(actualSMTime) << endl;
-		sleep(actualSMTime); // I know this looks like the saladmakers are sleeping on the job, but trust me, they're actually hard at work!
+		usleep(actualSMTime*1000000); // I know this looks like the saladmakers are sleeping on the job, but trust me, they're actually hard at work!
 
 		if(mem[3] == saladTotal) { // In extremely rare cases, a saladmaker would get assigned the final salad and get to this point, only for the chef to assign it to another one before the SM finished, making the program hang
 			break; // This should fix it
@@ -243,7 +243,7 @@ int main (int argc, char* args[]) {
 		sem_post(shmSem);
 
 		auto workTimeEnd = chrono::system_clock::now();
-		auto workTime = chrono::duration_cast<chrono::seconds>(workTimeEnd - workTimeStart); // Have to use duration_cast as duration usually gives time in float formats
+		auto workTime = chrono::duration_cast<chrono::microseconds>(workTimeEnd - workTimeStart); // Have to use duration_cast as duration usually gives time in float formats
 		workTimeTotal += workTime.count();
 
 		fout.close();
@@ -254,8 +254,9 @@ int main (int argc, char* args[]) {
 	cout << "SM #" << smNum << " finished work!" << endl;
 
 	sem_wait(shmSem);
-	mem[19 + 2*smNum] = workTimeTotal; // Update final time counters - this way, we only need one pass at the shared memory
-	mem[20 + 2*smNum] = waitTimeTotal;
+	// Update final time counters - this way, we only need one pass at the shared memory
+	mem[19 + 2*smNum] = workTimeTotal / 1000000; // Convert from microseconds back to seconds - the integer division automatically takes care of the remainder
+	mem[20 + 2*smNum] = waitTimeTotal / 1000000;
 	mem[smNum + 7] = 0; // And JUST IN CASE the busy flag still didn't get reset (has happened before), reset it for one final time after we're all done
 	sem_post(shmSem);
 
