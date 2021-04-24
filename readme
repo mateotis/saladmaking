@@ -1,0 +1,106 @@
+===SALADMAKING WRITE-UP===
+Máté Hekfusz
+
+This is the write-up/readme for my final assignment, the saladmaking program. It is in many ways the culmination of a semester's worth of studies, and I hope this shows in both this document and the code itself.
+The focus of saladmaking is interprocess communication, shared resources, and concurrent execution. In some themes it is similar to myhie, and you can see glimpses of my work on that program in this one. But saladmaking also had many new and unique qualities, which I will explore in this readme.
+
+Let's start!
+
+==FILE STRUCTURE==
+saladmaking is made up of five files: three cpp files, one header, and one makefile. The program also creates log files (at least two but potentially three) upon successful execution.
+
+1. chef.cpp is our chef, the boss of the kitchen, and accordingly, the main file. It is the parent of all other entities and manages their execution from start to finish. It is also responsible for informing the user of various statistics at the end of execution.
+2. saladmaker.cpp contains the code for our noble saladmakers (SMs). Ingredient weighing, chopping, and tallying are all included. The saladmaker executable is created from this file and is executed by the chef.
+3. logger.cpp is a logger program dedicated entirely to measuring concurrent times of execution - that is, when at least two saladmakers are busy at the same time. It is the first child of the chef - not very good at saladmaking, but very good at keeping track of the others.
+4. chef.h is a simple header file containing the declaration of a log reordering function (which I will elaborate on later) and the struct it uses.
+5. makefile links everything together through separate compilation, creating three executables: chef, saladmaker, and logger, the latter two being executed by the chef itself. As a bonus, the "make clean" command also removes all created log files to keep things tidy. In fact, that's the whole reason this readme has no file extension, to hide from the makefile's purging. :)
+
+==EXECUTION==
+Before I get into the nitty gritty, I want to state exactly how to invoke this program. The chef executable takes three integer arguments by default: the number of salads to be made (-n), the base time for the chef's rests (-m), and the base time for the SMs' chopping (-t). 
+There are two optional boolean parameters that you can add. The first one, which you will hopefully never need, is -rm which executes the program is reset mode. Reset mode unlinks and deletes any leftover semaphores and then immediately exits. It is meant to be used when a previous execution was interrupted, leaving behind resources. Unfortunately, it's impossible to clean up shared memory with this approach (you'll need the ipcrm -m [shmid] command for that), but it's still a valuable time-save should you ever run into problems.
+
+The second one is more interesting, and a bonus feature that I came up with. Adding -tf at invocation runs the temporal reordering algorithm at the end of the process, which takes the main log file and reorganises it in strict temporal order. While even this won't give you a 100% accurate log, you might find it an interesting new perspective. This algorithm creates a brand new file (called saladlog-ordered.txt) and doesn't intervene with the vanilla log, which you will always get.
+
+In summary, a valid invocation of saladmaking can look like this:
+./chef -m 2 -t 3 -n 10
+
+This is also the default setup for the program, which means that if you give it no parametres, it will run with these. Yay for flexibility!
+
+==INTERPROCESS COMMUNICATION==
+For a kitchen to work, communication must be orderly and efficient. In saladmaking, this is achieved with shared memory and semaphores.
+
+The chef sets up a shared memory segment called mem that is home to an array of 25 integers. All the other processes attach to this segment. While you can find a description for all 25 variables in the code (at the end when the statistics are printed), I'll add them here too with a bit more detail for completion's sake.
+
+mem[0] // Number of onions available - represents the number of the ingredient currently on the table to be picked up by the SMs
+mem[1] // Number of peppers available
+mem[2] // Number of tomatoes available
+mem[3] // The current number of salads
+mem[4] // Salads produced by SM #0 - running tally of salads produced by each SM
+mem[5] // Salads produced by SM #1
+mem[6] // Salads produced by SM #2
+mem[7] // SM #0 idle (0) or busy (1) - switched to 1 while the SM is busy weighing/chopping ingredients
+mem[8] // SM #1 idle (0) or busy (1)
+mem[9] // SM #2 idle (0) or busy (1)
+mem[10] // Onion weight for SM #0 - total weight, incremented upon every successful salad creation
+mem[11] // Pepper weight for SM #0
+mem[12] // Tomato weight for SM #0
+mem[13] // Onion weight for SM #1
+mem[14] // Pepper weight for SM #1
+mem[15] // Tomato weight for SM #1
+mem[16] // Onion weight for SM #2
+mem[17] // Pepper weight for SM #2
+mem[18] // Tomato weight for SM #2
+mem[19] // Total work time for SM #0 - time spent weighing and chopping, kept in the SMs' internal memory until the end when it is added to shared memory
+mem[20] // Total wait time for SM #0 - ditto, for time spent waiting to be woken up by the chef
+mem[21] // Total work time for SM #1
+mem[22] // Total wait time for SM #1
+mem[23] // Total work time for SM #2
+mem[24] // Total wait time for SM #2
+
+To ensure that all four creation processes play nicely with the shared memory (and each other), named POSIX semaphores are utilised. Five of them, to be precise. There are three SM-specific semaphores (sem0, sem1, sem2 - one for each) used for coordination with the chef, one for access control to the shared memory (shmSem), and one for access control for the log file (outSem).
+The chef has access to all five semaphores. The SMs each use the one designated to them, plus shmSem and outSem.
+
+When saladmaking is first executed, the chef sets up sem0, sem1, and sem2 in a closed state (with value 0), making it so that all the SMs are suspended until the chef picks out the right set of ingredients for them and manually wakes them up with a sem_post() on their semaphore. After they're done with making the salad (or don't have enough ingredients), they suspend themselves again and wait until the chef picks them again. So on and so on!
+
+shmSem and outSem are initialised to value 1. Each modification of any variable in shared memory is protected by shmSem, ensuring that there are no critical section problems. Most reads are also protected, but not all, as only reading a variable doesn't have to be exclusive (see the readers-writers problem). In fact, the whole program logic relies on while loops with the condition mem[3] < saladTotal, which means that they run only until all salads are done and no further.
+outSem works on the same principle, protecting all writes to the log file, as file writes are not guaranteed to be atomic.
+
+As an additional note, if a chef picks the ingredients for an SM that is currently busy, it busy-waits until the SM is available again. I use this solution partly for its simplicity, and partly because using a semaphore-based approach would have either made the intuitive stop-and-go logic much more complicated or would have required extra semaphores just for this.
+
+==LOGGING==
+Logging is an important requirement for saladmaking, as users rely on output to ascertain correct concurrent execution (that's a mouthful). Thus, I implemented a number of logging mechanisms, which I will now explain.
+
+Firstly, all participants of the saladmaking process do their best to keep the user informed of what they're doing as they're doing those things. The program has numerous prints to standard output; most of them specify the printer ([CHEF] or [SM #NUMBER]) and all of them are descriptive. Together, the user can see which SM is working on which salad, how long they work for, how many salads have been made, etc.
+
+Almost all of this logging data is also written to the external file called saladlog.txt, with an extra feature: time-stamps. I use the C-time library and some clever formatting so that users reading the log file can see exactly when the processes did their things, down to the second. All processes open the log in append-only mode, ensuring no overwrites.
+
+I must note here that entries in the saladlog are often not in strict chronological order, even though I use the outSem semaphore to ensure only one process is writing to the file at a time - I assume this is (partly) a problem inherent to the way semaphores work. When multiple processes are suspended on a semaphore, there is no way to manually decide the order in which they are woken up. Thus, one process might get to output multiple lines before another can. This was the inspiration for the temporal reordering algorithm (which has its own separate problems). Regardless, the log is largely accurate and should be highly useful for users.
+
+Now, let me say a few words about the logger. This special child of the chef is executed first and observes the entire process until the very end. It is constantly looking for one thing: concurrent busyness of at least two SMs. I created an entirely separate process for this because neither the chef nor the SMs have the ability to CONSTANTLY watch for changes - the chef takes time to rest after every ingredient choice, and the SMs all take time to chop their salad.
+
+The logger has no such issues. When it spots that two or more SMs are running at the same time, it starts a timer that runs until only one (or no) SM is busy again, but always for at least two seconds to avoid clutter. Each of the concurrent periods, recorded as such with start and end times, are written by the logger into a file called concurrentlog.txt. At the end of execution, the chef reads out the contents of this log onto the terminal for the user to see. This is a cleaner and more reliable solution than trying to pass times in shared memory, since we never know exactly how many periods of concurrent busyness we will have.
+
+As a final note, all log files are deleted at the start of execution and are re-created to be filled with new content, meaning that you don't have to manually throw files out and that you will always only see the relevant logs for each iteration.
+
+==ADDITIONAL POINTS==
+Once again I run into the issue of verbosity and writing too many words. Gah! To save you, dear reader, from boredom, I will use this section to mention a few important points that don't quite fit into any of the previous sections, rather than dedicating whole segments to them.
+
+- Timing in saladmaking is implemented with microsecond precision. This was done because I realised (some ways into my work) that sleep() only took integer arguments, which kind of defated the purpose of randomly generating a work/rest ranges. So, all waiting is handled by usleep() which works with microseconds. The time-keeping of the saladmakers is also done in microseconds with the C++ chrono library. All relevant statistics are converted back to seconds at the very end of execution and are recorded in shared memory as such. Among other things, this method resolves the issue of getting 0 second work times when saladmaker speed is chosen to be 1.
+
+- Ingredient weights are decided at the moment of measurement. Rather than dedicating another set of shared memory variables for "passing" the weights to the SMs, we simply assume that they are in the specified range (0.8*w - 1.2*w). The actual weights are randomly generated when the SMs measure the ingredients. If they are lower than the required amount (w), the SM stores it and goes back to waiting to be picked again. While the second helping of ingredients will always be enough, the code is written in a way to allow for any number of "passes" to gather enough ingredients.
+
+- While we're on ingredients, as per requirements, each SM has one ingredient constantly available to them. When they're woken up, they take and measure this ingredient first - and if it's below the needed amount, they just take another one right then and there and add it the same way.
+
+- The temporal reordering function is in the chef (and is pretty much the sole reason for the existence of the chef.h file) because it's the only process that still runs after everyone else has finished. While it would've made more thematic sense to put it in the logger, the chef is explicitly programmed to wait for all its children to exit before wrapping up, making it the only suitable candidate for post-saladmaking shenanigans. That is also why (beyond the fact that it is required to be the one) it is the one tasked with printing all final statistics and doing the legwork of removing the semaphores and the shared memory. Truly a responsible leader.
+
+- As mentioned above, I make absolutely sure all resources are purged/cleaned up before the program exits. I have tested it with Valgrind, and there are zero memory leaks.
+
+==FINAL NOTES==
+As always, thank you for reading this readme to the end. I hope I could give you a good behind-the-scenes view of saladmaking and the long, arduous work it took to create the program.
+
+As I have done with my previous assignments, I have maintained a Github repo which I frequently updated as I worked on this. You can find it here: https://github.com/mateotis/saladmaking I will make it public after the due date.
+
+I can honestly say that these programming assignments have been my favourite part of the course. They were very challenging, yes, but I learned tons throughout and (mostly) enjoyed the journey. And isn't that the most important thing?
+
+Cheers, and enjoy your saladmaking kitchen!
+--Máté
