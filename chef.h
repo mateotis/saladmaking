@@ -1,5 +1,5 @@
-#ifndef LOGGER_H
-#define LOGGER_H
+#ifndef CHEF_H
+#define CHEF_H
 
 #include <string>
 

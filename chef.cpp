@@ -14,7 +14,7 @@
 #include <iomanip> // For put_time() which enables outputting times to a file
 #include <fstream> // For file I/O
 
-#include "logger.h"
+#include "chef.h"
 
 #define SHMSIZE 1024 // Size of the shared memory segment; should be more than enough for our purposes
 #define SHMVARNUM 25 // Number of variables I use in shared memory
@@ -139,9 +139,19 @@ int main(int argc, char* args[]) {
 		}
 	}
 
-	cout << "SALADMAKING SETTINGS" << endl << "Number of salads to be made: " << saladTotal << endl << "Chef resting base time: " << chefTime << endl << "Saladmaker working base time: " << smTime << endl;
+	cout << "SALADMAKING SETTINGS" << endl;
+	if(resetMode == true) {
+		cout << "Reset mode: On" << endl;
+	}
+	else if(timeFix == true) {
+		cout << "Number of salads to be made: " << saladTotal << endl << "Chef resting base time: " << chefTime << endl << "Saladmaker working base time: " << smTime << endl << "Log time fix: On" << endl;
+	}
+	else {
+		cout << "Number of salads to be made: " << saladTotal << endl << "Chef resting base time: " << chefTime << endl << "Saladmaker working base time: " << smTime << endl;
+	}
+	cout << "\n";
 
-	if(resetMode == true) { // A fallback in case the execution is interrupted - activated by the user with the -rm parameter
+	if(resetMode == true) { // A fallback in case the execution is interrupted - activated by the user with the -rm parameter (sadly we can't remove a leftover shared memory segment this way, as that requires knowing the ID, which we can't at this point of the program)
 		sem_unlink("/sem0");
 		sem_unlink("/sem1");
 		sem_unlink("/sem2");
@@ -151,12 +161,12 @@ int main(int argc, char* args[]) {
 	}
 
 	// Creating one semaphore for each saladmaker
-	sem_t *sem0 = sem_open("/sem0", O_CREAT, 0640, 0);
+	sem_t *sem0 = sem_open("/sem0", O_CREAT, 0640, 0); // These semaphores all start locked, which ensures that the saladmakers wait until the chef activates each of them
 	sem_t *sem1 = sem_open("/sem1", O_CREAT, 0640, 0);
 	sem_t *sem2 = sem_open("/sem2", O_CREAT, 0640, 0);
 
-	sem_t *shmSem = sem_open("/shmSem", O_CREAT, 0640, 1); // Special semaphore for accessing the shared memory, only one process can have it at a time
-	sem_t *outSem = sem_open("/outSem", O_CREAT, 0640, 1); // Controls access to output log file
+	sem_t *shmSem = sem_open("/shmSem", O_CREAT, 0640, 1); // Special semaphore for accessing the shared memory, only one process can have it at a time - starts open
+	sem_t *outSem = sem_open("/outSem", O_CREAT, 0640, 1); // Controls access to output log file, same principle as shmSem
 
 	sem_t* semArray[3] = {sem0, sem1, sem2}; // For ease of access
 
@@ -168,16 +178,16 @@ int main(int argc, char* args[]) {
 	}
 
 	int *mem;
-	void* tempMem = (int*)shmat(shmid, NULL, 0); // Pointer magic! Casting the shared memory pointer to void, to then cast it back to int resolves some nasty issues
-	if (tempMem == reinterpret_cast<void*>(-1)) { // reinterpret_cast() ensures that we retain the same address when converting from void and back, which is exactly what we're doing
+	void* tempMem = (int*)shmat(shmid, NULL, 0); // Pointer magic! Casting the shared memory pointer to void, to then cast it back to int resolves some nasty issues (because for some reason, shmat() returns void in C++)
+	if (tempMem == reinterpret_cast<void*>(-1)) { // reinterpret_cast() ensures that we retain the same address when converting from void, which is exactly what we're doing
 		cerr << "Could not attach to shared memory!" << endl;
 		return -1;
 	}
 	else {
-		mem = reinterpret_cast<int*>(tempMem); // Now we have a proper int shared memory pointer 
+		mem = reinterpret_cast<int*>(tempMem); // Now we have a proper pointer to an array of ints in shared memory  
 	}
 
-	for(int i = 0; i < SHMVARNUM; i++) { // Initialise all values in shared memory to 0
+	for(int i = 0; i < SHMVARNUM; i++) { // Initialise all values in shared memory to 0 (according to the specification, this should be done automatically, but it never hurts to make sure)
 		mem[i] = 0;
 	}
 
@@ -194,34 +204,26 @@ int main(int argc, char* args[]) {
 		return -1;
 	} 
 	else if(pid == 0) { // In logger
+		// Set up parameters to send to execv()
 		string loggerName = "logger";
 		string segmentIDStr = to_string(shmid);
-		string timeFixStr = "";
-		if(timeFix == true) {
-			timeFixStr = "true";
-		}
-		else {
-			timeFixStr = "false";
-		}
 
 		char* loggerChar = new char[30];
 		char* segmentIDChar = new char[30];
 		char* saladTotalChar = new char[30];
-		char* timeFixChar = new char[30];
 
 		strcpy(loggerChar, loggerName.c_str());
 		strcpy(segmentIDChar, segmentIDStr.c_str());
 		strcpy(saladTotalChar, saladTotalStr.c_str());
-		strcpy(timeFixChar, timeFixStr.c_str());
 
-		char* arg[] = {loggerChar, segmentIDChar, saladTotalChar, timeFixChar, NULL};
+		char* arg[] = {loggerChar, segmentIDChar, saladTotalChar, NULL};
 		execv("./logger", arg);	// Start the logger!
 	}
 
 	// Forking saladmaker children
 	int count = 0;
 	for(int childNum = 0; childNum < 3; childNum++) {
-		sleep(0.1); // Stagger the kids a little
+		sleep(0.1); // Stagger the kids a little to ensure a smooth start
 		pid_t pid;
 		pid = fork();
 
@@ -235,7 +237,7 @@ int main(int argc, char* args[]) {
 			string segmentIDStr = to_string(shmid);
 			string childNumStr = to_string(childNum);
 
-			char* saladmakerChar = new char[30];
+			char* saladmakerChar = new char[30]; // As I explained back in myhie, there is no need to explicitly delete these new'd chars, as execv() replaces the entire memory segment occupied by them, getting rid of them automatically
 			char* segmentIDChar = new char[30];
 			char* childNumChar = new char[30];
 			char* saladTotalChar = new char[30];
@@ -252,18 +254,17 @@ int main(int argc, char* args[]) {
 		}
 	}
 
-	// TO DO: rewrite while loop to not rely on accessing shared memory?
-	srand(time(0));
-	while(mem[3] < saladTotal) {
-		// Before each serving of ingredients, the chef rests for a randomly determined time based on user input
+	srand(time(0)); // Seed the random number generator - should only do it once in the entire program, otherwise weird things can happen!
+	while(mem[3] < saladTotal) { // Accessing shared memory for just a read is not a race condition, hence we don't need to lock this check down with semaphores
 
 		if(mem[3] == saladTotal) { // To prevent any unneeded passes at the end
 			break;
 		}		
 
+		// Before each serving of ingredients, the chef rests for a randomly determined time based on user input
 		double chefTimeMin = 0.5*double(chefTime); // As specified in the requirements
-		double f = (double)rand() / RAND_MAX;
-		double actualChefTime = chefTimeMin + f * (double(chefTime) - chefTimeMin);
+		double f = (double)rand() / RAND_MAX; // Get a random value between 0 and 1
+		double actualChefTime = chefTimeMin + f * (double(chefTime) - chefTimeMin); // Our final number is acquired by taking the minimum time and adding to it the range multiplied by a random number between 0 and 1
 
 		// It's a little convoluted, but this is the only way I found to make a time format into an outputtable string (from the C++ reference)
 		sem_wait(outSem);
@@ -272,12 +273,12 @@ int main(int argc, char* args[]) {
 		fout << put_time(&tm, "%T") << " [CHEF] Resting for " << actualChefTime << "\n"; // %T is the shorthand for the classic hour:minute:second format
 		sem_post(outSem);
 
-		cout << "Chef resting for " << actualChefTime << endl;
+		cout << "[CHEF] Resting for " << actualChefTime << endl;
 		sleep(actualChefTime);
 
 		int choice = rand() % 3; // Simulating the chef picking two ingredients at random (three possible combinations)
 
-		sem_wait(shmSem);
+		sem_wait(shmSem); // Now we are actually modifying shared memory values, making this a critical section
 
 		if(choice == 0) { // Picking tomatoes and peppers for SM #0
 			mem[1] += 1;
@@ -293,24 +294,25 @@ int main(int argc, char* args[]) {
 		}
 		sem_post(shmSem);
 
+		cout << "[CHEF] Picked up ingredients for SM #" << choice << endl;
 		sem_wait(outSem);
 		t = time(0);
 		tm = *localtime(&t);
 		fout << put_time(&tm, "%T") << " [CHEF] Picked up ingredients for SM #" << choice << "\n";
-		cout << "Chef selected SM #" << choice << endl;
 		sem_post(outSem);
 
-		while(mem[choice + 7] == 1) { // If the selected SM is busy, wait until it becomes available
+		while(mem[choice + 7] == 1) { // If the selected SM is busy, wait until it becomes available (busy waiting is a simpler and less error-prone solution here than trying to get into any SM's semaphore)
 			sleep(0.1);
 		}
 
+		cout << "[CHEF] Telling SM #" << choice << " to take its ingredients" << endl;
 		sem_wait(outSem);
 		t = time(0);
 		tm = *localtime(&t);
 		fout << put_time(&tm, "%T") << " [CHEF] Telling SM #" << choice << " to take its ingredients\n";
-		cout << "Waking up SM #" << choice << endl;
 		sem_post(outSem);
-		sem_post(semArray[choice]);
+
+		sem_post(semArray[choice]); // Wake up the SM that we picked the ingredients for, telling it that it can pick them up from the table
 
 		fout.close();
 		fout.open("saladlog.txt", ios::app); // This makes it so that the log files are updated on each iteration; it helps with debugging if anyone gets stuck
@@ -329,6 +331,8 @@ int main(int argc, char* args[]) {
 	fout << put_time(&tm, "%T") << " [CHEF] " << saladTotal << " salads finished! Asking saladmakers to help clean up the kitchen...\n";
 	sem_post(outSem);
 
+	cout << "[CHEF] " << saladTotal << " salads finished! Asking saladmakers to help clean up the kitchen...\n";	
+
 	for(int i = 0; i < 3; i++) { // Unlock all semaphores so all saladmakers have a chance to gracefully finish
 		sem_post(semArray[i]);
 	}
@@ -337,18 +341,18 @@ int main(int argc, char* args[]) {
 	int status = 0;
 	while ((pidChild = wait(&status)) != -1) {} // Wait for all the children to finish
 
-	// Report final results
+	// Report final results (only displaying relevant stats by default; uncomment the rest of the lines if you want to see more)
 	cout << "\nFINAL RESULTS" << endl;
-	cout << "Number of onions available: " << mem[0] << endl;
-	cout << "Number of peppers available: " << mem[1] << endl;
-	cout << "Number of tomatoes available: " << mem[2] << endl;
+	//cout << "Number of onions available: " << mem[0] << endl;
+	//cout << "Number of peppers available: " << mem[1] << endl;
+	//cout << "Number of tomatoes available: " << mem[2] << endl;
 	cout << "The final number of salads: " << mem[3] << endl;
 	cout << "Salads produced by SM #0: " << mem[4] << endl;
 	cout << "Salads produced by SM #1: " << mem[5] << endl;
 	cout << "Salads produced by SM #2: " << mem[6] << endl;
-	cout << "SM #0 idle (0) or busy (1): " << mem[7] << endl;
-	cout << "SM #1 idle (0) or busy (1): " << mem[8] << endl;
-	cout << "SM #2 idle (0) or busy (1): " << mem[9] << endl;
+	//cout << "SM #0 idle (0) or busy (1): " << mem[7] << endl;
+	//cout << "SM #1 idle (0) or busy (1): " << mem[8] << endl;
+	//cout << "SM #2 idle (0) or busy (1): " << mem[9] << endl;
 	cout << "Onion weight for SM #0: " << mem[10] << endl;
 	cout << "Pepper weight for SM #0: " << mem[11] << endl;
 	cout << "Tomato weight for SM #0: " << mem[12] << endl;
@@ -390,6 +394,7 @@ int main(int argc, char* args[]) {
 		temporalReordering("saladlog.txt");
 	}
 
+	// Clean up all semaphores
 	sem_close(sem0);
 	sem_unlink("/sem0");
 	sem_close(sem1);
@@ -401,6 +406,7 @@ int main(int argc, char* args[]) {
 	sem_close(outSem);
 	sem_unlink("/outSem");
 
+	// Clean up shared memory
 	int err = shmdt(mem); // Detach from the segment
 	if (err == -1) {
 		cerr << "Error detaching from shared memory!" << endl;

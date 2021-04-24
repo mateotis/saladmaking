@@ -11,8 +11,6 @@
 #include <fstream> // For file I/O
 #include <chrono> // For highly accurate, C++ timekeeping
 
-#include "logger.h"
-
 using namespace std;
 
 int main (int argc, char* args[]) {
@@ -23,48 +21,41 @@ int main (int argc, char* args[]) {
 	string saladTotalStr = args[2];
 	int saladTotal = stoi(saladTotalStr);
 
-	bool timeFix = false;
-	if(strcmp(args[3], "true") == 0) {
-		timeFix = true;
-	}
-
 	int *mem;
-	void* tempMem = (int*)shmat(shmid, NULL, 0); // Pointer magic! Casting the shared memory pointer to void, to then cast it back to int resolves some nasty issues
-	if (tempMem == reinterpret_cast<void*>(-1)) { // reinterpret_cast() ensures that we retain the same address when converting from void and back, which is exactly what we're doing
+	void* tempMem = (int*)shmat(shmid, NULL, 0); // Pointer magic! Casting the shared memory pointer to void, to then cast it back to int resolves some nasty issues (because for some reason, shmat() returns void in C++)
+	if (tempMem == reinterpret_cast<void*>(-1)) { // reinterpret_cast() ensures that we retain the same address when converting from void, which is exactly what we're doing
 		cerr << "Could not attach to shared memory!" << endl;
 		return -1;
 	}
 	else {
-		mem = reinterpret_cast<int*>(tempMem); // Now we have a proper int shared memory pointer 
+		mem = reinterpret_cast<int*>(tempMem); // Now we have a proper pointer to an array of ints in shared memory
 	}
 
 	cout << "Logger activated!" << endl;
 
-	string outFile = "concurrentlog.txt";
-	remove(outFile.c_str());
+	remove("concurrentlog.txt");
 	ofstream fout;
-	fout.open(outFile, ios::app); // Opening file in append mode
+	fout.open("concurrentlog.txt", ios::app); // Opening file in append mode
 
 	bool timerGoing = false;
 	time_t t = time(0);
-	tm tmStart = *localtime(&t); // Set up initial values outside the loop so we can access the most recent times from sides of the if/else
+	tm tmStart = *localtime(&t); // Set up initial values outside the loop so we can access the most recent times from both sides of the if/else
 	tm tmEnd = *localtime(&t);
 
 	while(mem[3] < saladTotal) { // Check for busyness
-		if((mem[7] + mem[8] + mem[9] > 1)) { // Measure concurrent time periods - aka when at least two saladmakers are busy
+		if((mem[7] + mem[8] + mem[9] > 1)) { // Measure concurrent time periods - AKA when at least two saladmakers are busy
 			if(timerGoing == false) { // If the timer is not running already, start it
 				t = time(0);
 				tmStart = *localtime(&t);
-				fout << put_time(&tmStart, "%T") << " - "; // Record start time of concurrent period
+				fout << put_time(&tmStart, "%T") << " - "; // Record start time of concurrent period in file
 				timerGoing = true; // So that we know we have a running timer				
 			}
-			//sleep(1); // Check if it's still concurrent after a second to avoid spamming of the log file
 		}
 		else {
 			if(timerGoing == true) { // Record end time of concurrent period
 				t = time(0);
 				tmEnd = *localtime(&t);
-				if(tmEnd.tm_sec <= tmStart.tm_sec + 1) { // Don't reset the timer if less than a second has passed since it was started, since we're not tracking millisecond changes
+				if(tmEnd.tm_sec <= tmStart.tm_sec + 1) { // Don't reset the timer if less than a second has passed since it was started, since we're not tracking millisecond changes (we can do this check because tm is a simple struct!)
 					continue;
 				}
 				fout << put_time(&tmEnd, "%T") << "\n";
