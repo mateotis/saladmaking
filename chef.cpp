@@ -16,12 +16,12 @@
 
 #include "chef.h"
 
-#define SHMSIZE 1024 // Size of the shared memory segment; should be more than enough for our purposes
+#define SHMSIZE 128 // Size of the shared memory segment; a little more than what is necessary for all our variables
 #define SHMVARNUM 25 // Number of variables I use in shared memory
 
 using namespace std;
 
-void temporalReordering(string fileName) {
+void temporalReordering(string fileName) { // Algorithm that sorts the main log file in strict temporal order
 	ifstream log;
 	log.open(fileName);
 
@@ -49,13 +49,13 @@ void temporalReordering(string fileName) {
 			logArray[cnt].entity = line.substr(10, 5);
 		}
 
-		size_t contentStart = line.find("]") + 2;
+		size_t contentStart = line.find("]") + 2; // Find the start of the content string (two characters from the closing bracket)
 		logArray[cnt].content = line.substr(contentStart);
 
 		cnt++;
 	}
 
-	int currentMinHour = 24;
+	int currentMinHour = 24; // Initialise to impossibly high values to make sure we trigger something in the selection sort
 	int currentMinMin = 61; // Ha!
 	int currentMinSec = 61;
 	int currentMinLoc = -1;
@@ -94,7 +94,7 @@ void temporalReordering(string fileName) {
 	ofstream fout;
 	fout.open("saladlog-ordered.txt");
 
-	for(int i = 0; i < lineCount; i++) {
+	for(int i = 0; i < lineCount; i++) { // Simply fill up the file based on our final array 
 		fout << fixedArray[i] << "\n";
 	}
 
@@ -113,7 +113,7 @@ int main(int argc, char* args[]) {
 	// Default values, in case user omits some params
 	int saladTotal = 10;
 	int chefTime = 2;
-	int smTime = 1;
+	int smTime = 3;
 	bool resetMode = false;
 	bool timeFix = false;
 
